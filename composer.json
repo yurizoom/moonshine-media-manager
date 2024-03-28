@@ -1,0 +1,33 @@
+{
+    "name": "yurizoom/moonshine-media-manager",
+    "type": "library",
+    "description": "Media manager for moonshine",
+    "keywords": ["moonshine", "media", "manager"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "yurizoom",
+            "homepage": "https://github.com/yurizoom",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "moonshine/moonshine": "^2.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "MoonShine\\MediaManager\\": "src/"
+        }
+    },
+    "conflict": {
+        "moonshine/moonshine": "<2.0"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "MoonShine\\MediaManager\\MediaManagerServiceProvider"
+            ]
+        }
+    }
+}
