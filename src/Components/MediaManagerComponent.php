@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MoonShine\MediaManager\Components;
+namespace YuriZoom\MoonShineMediaManager\Components;
 
 use MoonShine\Components\MoonShineComponent;
-use MoonShine\MediaManager\MediaManager;
+use YuriZoom\MoonShineMediaManager\MediaManager;
 
 /**
  * @method static static make()

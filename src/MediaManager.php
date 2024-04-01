@@ -2,18 +2,16 @@
 
 declare(strict_types=1);
 
-namespace MoonShine\MediaManager;
+namespace YuriZoom\MoonShineMediaManager;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Local\LocalFilesystemAdapter;
-use MoonShine\Components\Icon;
-use MoonShine\MediaManager\Pages\MediaManagerPage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 
 /**
  * Class MediaManager.

@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use MoonShine\MediaManager\Controllers\MediaManagerController;
+use YuriZoom\MoonShineMediaManager\Controllers\MediaManagerController;
 
 Route::group([
     'prefix' => config('moonshine.route.prefix'),

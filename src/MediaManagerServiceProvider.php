@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MoonShine\MediaManager;
+namespace YuriZoom\MoonShineMediaManager;
 
 use Illuminate\Support\ServiceProvider;
-use MoonShine\MediaManager\Pages\MediaManagerPage;
 use MoonShine\Menu\MenuItem;
 use MoonShine\MoonShine;
+use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 
 class MediaManagerServiceProvider extends ServiceProvider
 {

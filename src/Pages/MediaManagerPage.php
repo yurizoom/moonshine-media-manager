@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MoonShine\MediaManager\Pages;
+namespace YuriZoom\MoonShineMediaManager\Pages;
 
 use MoonShine\Attributes\Icon;
-use MoonShine\MediaManager\Components\MediaManagerComponent;
 use MoonShine\Pages\Page;
 use Symfony\Component\Routing\Attribute\Route;
+use YuriZoom\MoonShineMediaManager\Components\MediaManagerComponent;
 
 #[Icon('heroicons.outline.film')]
 #[Route('media')]

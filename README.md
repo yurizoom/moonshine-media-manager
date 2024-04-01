@@ -1,7 +1,7 @@
 Media manager for MoonShine
 ============================
 
-Media manager в Laravel.
+Media manager в MoonShine.
 
 ## Скриншот
 
@@ -30,7 +30,7 @@ $ composer require yurizoom/moonshine-media-manager
 
 Для того чтобы добавить меню в другое место, вставьте следующий код в app/Providers/MoonShineServiceProvider.php:
 ```php
-use MoonShine\MediaManager\Pages\MediaManagerPage;
+use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 
 protected function menu(): array
     {

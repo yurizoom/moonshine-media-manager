@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace MoonShine\MediaManager\Controllers;
+namespace YuriZoom\MoonShineMediaManager\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use MoonShine\MediaManager\MediaManager;
 use MoonShine\MoonShineRequest;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use YuriZoom\MoonShineMediaManager\MediaManager;
 
 class MediaManagerController extends Controller
 {
