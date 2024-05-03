@@ -3,6 +3,8 @@ Media manager for MoonShine
 
 Media manager в MoonShine.
 
+**Находится в разработке**
+
 ## Скриншот
 
 ![wx20170809-165644](https://raw.githubusercontent.com/yurizoom/moonshine-media-manager/main/blob/screenshot.jpg)
