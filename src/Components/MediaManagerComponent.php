@@ -19,7 +19,7 @@ final class MediaManagerComponent extends MoonShineComponent
 
     public function getView(): string
     {
-        return 'moonshine-media-manager::'.moonshineRequest()->get('view', 'table');
+        return 'moonshine-media-manager::' . moonshineRequest()->get('view', config('moonshine.media_manager.default_view'));
     }
 
     protected function viewData(): array
