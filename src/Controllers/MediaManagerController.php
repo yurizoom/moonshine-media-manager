@@ -6,6 +6,7 @@ namespace YuriZoom\MoonShineMediaManager\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Redirect;
 use MoonShine\MoonShineRequest;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use YuriZoom\MoonShineMediaManager\MediaManager;
@@ -51,14 +52,11 @@ class MediaManagerController extends Controller
         $manager = new MediaManager($dir);
 
         try {
-            if ($manager->upload($files)) {
-                //admin_toastr(trans('admin.upload_succeeded'));
-            }
-        } catch (\Exception $e) {
-            //admin_toastr($e->getMessage(), 'error');
+            $manager->upload($files);
+        } catch (\Exception) {
         }
 
-        return back();
+        return Redirect::back();
     }
 
     public function delete(MoonShineRequest $request)
@@ -68,23 +66,11 @@ class MediaManagerController extends Controller
         $manager = new MediaManager();
 
         try {
-            if ($manager->delete($files)) {
-                return response()->json([
-                    'status' => true,
-                    'message' => __('moonshine-media-manager::media-manager.delete_succeeded'),
-                ]);
-            }
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ]);
+            $manager->delete($files);
+        } catch (\Exception) {
         }
 
-        return response()->json([
-            'status' => false,
-            'message' => '',
-        ]);
+        return Redirect::back();
     }
 
     public function move(MoonShineRequest $request)
@@ -95,23 +81,11 @@ class MediaManagerController extends Controller
         $manager = new MediaManager($path);
 
         try {
-            if ($manager->move($new)) {
-                return response()->json([
-                    'status' => true,
-                    'message' => __('moonshine-media-manager::media-manager.move_succeeded'),
-                ]);
-            }
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ]);
+            $manager->move($new);
+        } catch (\Exception) {
         }
 
-        return response()->json([
-            'status' => false,
-            'message' => '',
-        ]);
+        return Redirect::back();
     }
 
     public function newFolder(MoonShineRequest $request)
@@ -122,22 +96,10 @@ class MediaManagerController extends Controller
         $manager = new MediaManager($dir);
 
         try {
-            if ($manager->newFolder($name)) {
-                return response()->json([
-                    'status' => true,
-                    'message' => __('moonshine-media-manager::media-manager.move_succeeded'),
-                ]);
-            }
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ]);
+            $manager->newFolder($name);
+        } catch (\Exception) {
         }
 
-        return response()->json([
-            'status' => false,
-            'message' => '',
-        ]);
+        return Redirect::back();
     }
 }

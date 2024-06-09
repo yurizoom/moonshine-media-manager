@@ -1,9 +1,9 @@
-@include('moonshine-media-manager::snippets.menu')
+@include('moonshine-media-manager::menu')
 
 <x-moonshine::divider/>
 
 <x-moonshine::box>
-    @include('moonshine-media-manager::snippets.breadcrumbs')
+    @include('moonshine-media-manager::breadcrumbs')
 
     @yield('media-manager-content')
 </x-moonshine::box>

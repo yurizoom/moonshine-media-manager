@@ -10,6 +10,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Local\LocalFilesystemAdapter;
+use MoonShine\MoonShineUI;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 
@@ -73,17 +74,14 @@ class MediaManager
         $this->storage = Storage::disk($disk);
 
         if (!$this->storage->getAdapter() instanceof LocalFilesystemAdapter) {
-            dump('[laravel-admin-ext/media-manager] only works for local storage.');
-            //Handler::error('Error', '[laravel-admin-ext/media-manager] only works for local storage.');
+            MoonShineUI::toast("Media manager extension only works for local storage.", "error");
         }
     }
 
     public function ls(): array
     {
         if (!$this->exists()) {
-            dump("File or directory [$this->path] not exists");
-            //Handler::error('Error', "File or directory [$this->path] not exists");
-
+            MoonShineUI::toast("File or directory [$this->path] not exists", "error");
             return [];
         }
 
@@ -94,7 +92,7 @@ class MediaManager
         return $this->formatDirectories($directories)
             ->merge($this->formatFiles($files))
             ->sort(function ($item) {
-                return $item['name'];
+                return $item['path'];
             })->all();
     }
 
@@ -169,7 +167,7 @@ class MediaManager
             return [
                 'download' => route('moonshine.media.manager.download', compact('file')),
                 'icon' => '',
-                'name' => $file,
+                'path' => $file,
                 'preview' => $this->getFilePreview($file),
                 'type' => $this->detectFileType($file),
                 'isDir' => false,
@@ -193,7 +191,7 @@ class MediaManager
             return [
                 'download' => '',
                 'icon' => '',
-                'name' => $dir,
+                'path' => $dir,
                 'preview' => str_replace('__path__', $dir, $preview),
                 'isDir' => true,
                 'size' => '',
@@ -227,7 +225,7 @@ class MediaManager
 
     public function getFilePreview($file): string
     {
-        return ($this->detectFileType($file) == 'image' && isset($this->storage->getConfig()['url']))
+        return ($this->detectFileType($file) == 'image')
             ? '<img src="' . $this->storage->url($file) . '" alt="Attachment"/>'
             : '';
     }
