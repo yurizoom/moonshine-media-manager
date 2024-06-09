@@ -22,7 +22,7 @@ final class MediaManagerDeleteButton extends ActionButton
             method: 'DELETE',
             formBuilder: fn(FormBuilder $formBuilder, $path) => $formBuilder
                 ->fields([
-                    Heading::make(__('moonshine::ui.confirm_message')),
+                    Heading::make(__('moonshine-media-manager::media-manager.confirm_message')),
                     Hidden::make('', 'files[]')
                 ])
                 ->fill([

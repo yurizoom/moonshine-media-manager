@@ -7,4 +7,8 @@ return [
     'time' => 'Time',
     'size' => 'Size',
     'home' => 'Home',
+    'close' => 'Close',
+    'url' => 'Url',
+    'rename' => 'Rename & Move',
+    'confirm_message' => 'Are you sure?'
 ];
