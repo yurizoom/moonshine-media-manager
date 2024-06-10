@@ -74,14 +74,14 @@ class MediaManager
         $this->storage = Storage::disk($disk);
 
         if (!$this->storage->getAdapter() instanceof LocalFilesystemAdapter) {
-            MoonShineUI::toast("Media manager extension only works for local storage.", "error");
+            MoonShineUI::toast(__('moonshine-media-manager::media-manager.error.only_local_storage'), "error");
         }
     }
 
     public function ls(): array
     {
         if (!$this->exists()) {
-            MoonShineUI::toast("File or directory [$this->path] not exists", "error");
+            MoonShineUI::toast(__('moonshine-media-manager::media-manager.error.file_not_exists', ['path' => $this->path]), "error");
             return [];
         }
 
@@ -128,6 +128,10 @@ class MediaManager
     public function upload(array $files = []): mixed
     {
         foreach ($files as $file) {
+            if ($this->allowed && !in_array($file->getClientOriginalExtension(), $this->allowed)) {
+                MoonShineUI::toast(__('moonshine-media-manager::media-manager.error.file_extension_not_allowed', ['ext' => $file->getClientOriginalExtension()]), "error");
+            }
+
             $this->storage->putFileAs($this->path, $file, $file->getClientOriginalName());
         }
 
