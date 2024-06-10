@@ -22,6 +22,12 @@ $ composer require yurizoom/moonshine-media-manager
     'media-manager' => [
         // Автоматическое добавление в меню
         'auto_menu' => true,
+        // Корневая директория
+        'disk' => config('filesystem.default', 'public'),
+        // Разрешенные для загрузки расширения файлов
+        'allowed_ext' => 'jpg,jpeg,png,pdf,doc,docx,zip',
+        // Вид менеджера по-умолчанию
+        'default_view' => 'table',
     ]
 ]
 ```
