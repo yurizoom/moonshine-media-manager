@@ -10,7 +10,7 @@ return [
     'close' => 'Close',
     'url' => 'Url',
     'rename' => 'Rename & Move',
-    'confirm_message' => 'Are you sure?'
+    'confirm_message' => 'Are you sure?',
     'error' => [
         'file_extension_not_allowed' => "File extension :ext is not allowed",
         'only_local_storage' => "Media manager extension only works for local storage",
