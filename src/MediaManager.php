@@ -214,14 +214,16 @@ class MediaManager
 
         $folders = array_filter($folders);
 
+        $view = request('view', 'table');
+
         $path = '';
 
-        $navigation = [$this->indexUrl() => __('moonshine-media-manager::media-manager.home')];
+        $navigation = [$this->indexUrl(['view' => $view]) => __('moonshine-media-manager::media-manager.home')];
 
         foreach ($folders as $folder) {
             $path = rtrim($path, '/') . '/' . $folder;
 
-            $navigation[$this->indexUrl(['path' => $path])] = $folder;
+            $navigation[$this->indexUrl(['path' => $path, 'view' => $view])] = $folder;
         }
 
         return $navigation;
