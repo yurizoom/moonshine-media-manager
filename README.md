@@ -1,7 +1,14 @@
-Media manager for MoonShine
+Media manager for MoonShine 3
 ============================
 
 Media manager в MoonShine.
+
+### Поддержка версий MoonShine
+
+| MoonShine   | Пакет       |
+|-------------|-------------|
+| 2.0+        | 1.0+        |
+| 3.0+        | 2.0+        |
 
 ## Скриншот
 
@@ -15,7 +22,7 @@ $ composer require yurizoom/moonshine-media-manager
 
 ## Настройка
 
-В файле config/moonshine.php добавьте конфигурации.
+Если необходимо изменить настройки, добавьте в файле config/moonshine.php:
 
 ```php
 [
@@ -34,7 +41,7 @@ $ composer require yurizoom/moonshine-media-manager
 
 ### Добавление в меню
 
-Для того чтобы добавить меню в другое место, вставьте следующий код в app/Providers/MoonShineServiceProvider.php:
+Для того чтобы добавить меню в другое место, вставьте следующий код в app/MoonShine/Layouts/MoonShineLayout.php:
 ```php
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 
@@ -44,7 +51,7 @@ protected function menu(): array
             ...
             
             MenuItem::make(
-                static fn () => __('Media manager'),
+                __('Media manager'),
                 new MediaManagerPage(),
             ),
             
