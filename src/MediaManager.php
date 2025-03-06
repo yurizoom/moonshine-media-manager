@@ -14,6 +14,7 @@ use MoonShine\Laravel\MoonShineUI;
 use MoonShine\Support\Enums\ToastType;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use YuriZoom\MoonShineMediaManager\Enums\MediaManagerView as MediaManagerViewEnums;
+use YuriZoom\MoonShineMediaManager\Helpers\URLGenerator;
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 
 /**
@@ -228,9 +229,7 @@ class MediaManager
 
         $folders = array_filter($folders);
 
-        $view = MediaManagerViewEnums::tryFrom(request('view'))
-            ?? MediaManagerViewEnums::tryFrom(config('moonshine.media_manager.default_view'))
-            ?? MediaManagerViewEnums::TABLE;
+        $view = URLGenerator::getView();
 
         $path = '';
 

@@ -17,6 +17,7 @@ use YuriZoom\MoonShineMediaManager\Components\Buttons\MediaManagerViewButton;
 use YuriZoom\MoonShineMediaManager\Components\MediaManagerQuickJump;
 use YuriZoom\MoonShineMediaManager\Components\MediaManagerView;
 use YuriZoom\MoonShineMediaManager\Enums\MediaManagerView as MediaManagerViewEnums;
+use YuriZoom\MoonShineMediaManager\Helpers\URLGenerator;
 use YuriZoom\MoonShineMediaManager\MediaManager;
 
 #[Route('media')]
@@ -37,9 +38,7 @@ class MediaManagerPage extends Page
     public function components(): array
     {
         $path = moonshineRequest()->get('path', '/');
-        $view = MediaManagerViewEnums::tryFrom(moonshineRequest()->get('view'))
-            ?? MediaManagerViewEnums::tryFrom(config('moonshine.media_manager.default_view'))
-            ?? MediaManagerViewEnums::TABLE;
+        $view = URLGenerator::getView();
 
         $manager = new MediaManager($path ?? '/');
 

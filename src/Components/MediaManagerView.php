@@ -8,7 +8,7 @@ use MoonShine\UI\Components\MoonShineComponent;
 use YuriZoom\MoonShineMediaManager\Enums\MediaManagerView as MediaManagerViewEnums;
 
 /**
- * @method static static make(string $view, array $list)
+ * @method static static make(MediaManagerViewEnums $viewType, array $list)
  */
 final class MediaManagerView extends MoonShineComponent
 {
