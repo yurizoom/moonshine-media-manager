@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace YuriZoom\MoonShineMediaManager\Pages;
 
-use MoonShine\Attributes\Icon;
-use MoonShine\Components\Breadcrumbs;
-use MoonShine\Decorations\Block;
-use MoonShine\Decorations\Column;
-use MoonShine\Decorations\Divider;
-use MoonShine\Decorations\Grid;
-use MoonShine\Pages\Page;
+use MoonShine\Laravel\Components\Fragment;
+use MoonShine\Laravel\Pages\Page;
+use MoonShine\UI\Components\Breadcrumbs;
+use MoonShine\UI\Components\Layout\Box;
+use MoonShine\UI\Components\Layout\Divider;
 use Symfony\Component\Routing\Attribute\Route;
 use YuriZoom\MoonShineMediaManager\Components\Buttons\MediaManagerNewFolderButton;
 use YuriZoom\MoonShineMediaManager\Components\Buttons\MediaManagerRefreshButton;
@@ -18,51 +16,48 @@ use YuriZoom\MoonShineMediaManager\Components\Buttons\MediaManagerUploadButton;
 use YuriZoom\MoonShineMediaManager\Components\Buttons\MediaManagerViewButton;
 use YuriZoom\MoonShineMediaManager\Components\MediaManagerQuickJump;
 use YuriZoom\MoonShineMediaManager\Components\MediaManagerView;
+use YuriZoom\MoonShineMediaManager\Enums\MediaManagerView as MediaManagerViewEnums;
 use YuriZoom\MoonShineMediaManager\MediaManager;
 
-#[Icon('heroicons.outline.film')]
 #[Route('media')]
 class MediaManagerPage extends Page
 {
-    public function title(): string
+    public function getTitle(): string
     {
         return __('Media manager');
     }
 
-    public function breadcrumbs(): array
+    public function getBreadcrumbs(): array
     {
         return [
-            '#' => $this->title(),
+            '#' => $this->getTitle(),
         ];
     }
 
     public function components(): array
     {
         $path = moonshineRequest()->get('path', '/');
-        $view = moonshineRequest()->get('view', config('moonshine.media_manager.default_view'));
+        $view = MediaManagerViewEnums::tryFrom(moonshineRequest()->get('view'))
+            ?? MediaManagerViewEnums::tryFrom(config('moonshine.media_manager.default_view'))
+            ?? MediaManagerViewEnums::TABLE;
 
         $manager = new MediaManager($path ?? '/');
 
         return [
-            Block::make([
-                Grid::make([
-                    Column::make([
-                        MediaManagerRefreshButton::make(),
-                        MediaManagerUploadButton::make(),
-                        MediaManagerNewFolderButton::make(),
-                        MediaManagerViewButton::make('table'),
-                        MediaManagerViewButton::make('list'),
-                    ])
-                        ->columnSpan(8)
-                        ->customAttributes(['class' => 'flex gap-2']),
-                    Column::make([
-                        MediaManagerQuickJump::make($view),
-                    ])
-                        ->columnSpan(4)
+            Box::make([
+                Fragment::make([
+                    MediaManagerRefreshButton::make(),
+                    MediaManagerUploadButton::make(),
+                    MediaManagerNewFolderButton::make(),
+                    MediaManagerViewButton::make(MediaManagerViewEnums::TABLE),
+                    MediaManagerViewButton::make(MediaManagerViewEnums::LIST),
                 ]),
-            ]),
+                Fragment::make([
+                    MediaManagerQuickJump::make($view),
+                ])->style('margin-top: 0')
+            ])->class('flex items-center justify-between'),
             Divider::make(),
-            Block::make([
+            Box::make([
                 Breadcrumbs::make($manager->navigation()),
                 MediaManagerView::make($view, $manager->ls()),
             ]),

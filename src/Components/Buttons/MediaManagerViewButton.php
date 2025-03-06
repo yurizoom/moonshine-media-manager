@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace YuriZoom\MoonShineMediaManager\Components\Buttons;
 
-use MoonShine\ActionButtons\ActionButton;
-use YuriZoom\MoonShineMediaManager\Hellpers\URLGenerator;
+use MoonShine\UI\Components\ActionButton;
+use YuriZoom\MoonShineMediaManager\Enums\MediaManagerView as MediaManagerViewEnums;
+use YuriZoom\MoonShineMediaManager\Helpers\URLGenerator;
 
 /**
- * @method static static make(string $view)
+ * @method static static make(MediaManagerViewEnums $view)
  */
 final class MediaManagerViewButton extends ActionButton
 {
-    public function __construct(string $view)
+    public function __construct(MediaManagerViewEnums $view)
     {
         parent::__construct(__(''), URLGenerator::query(url()->current(), ['path' => moonshineRequest()->get('path', '/'), 'view' => $view]));
 
         $this->icon(match($view) {
-            'table' => 'heroicons.outline.list-bullet',
-            'list' => 'heroicons.outline.squares-2x2',
+            MediaManagerViewEnums::LIST => 'squares-2x2',
+            default => 'list-bullet',
         })->showInLine();
     }
 }

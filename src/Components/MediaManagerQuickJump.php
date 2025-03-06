@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace YuriZoom\MoonShineMediaManager\Components;
 
-use MoonShine\Components\MoonShineComponent;
+use MoonShine\UI\Components\MoonShineComponent;
+use YuriZoom\MoonShineMediaManager\Enums\MediaManagerView as MediaManagerViewEnums;
 
 /**
- * @method static static make(string $view)
+ * @method static static make(MediaManagerViewEnums $viewType)
  */
 final class MediaManagerQuickJump extends MoonShineComponent
 {
-    public function __construct(protected string $view)
+    public function __construct(protected MediaManagerViewEnums $viewType)
     {
-        //
+        parent::__construct();
     }
 
     public function getView(): string
@@ -25,7 +26,7 @@ final class MediaManagerQuickJump extends MoonShineComponent
     {
         return [
             'path' => moonshineRequest()->get('path', '/'),
-            'view' => $this->view,
+            'view' => $this->viewType->value,
         ];
     }
 }

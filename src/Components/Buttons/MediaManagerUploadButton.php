@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace YuriZoom\MoonShineMediaManager\Components\Buttons;
 
-use MoonShine\ActionButtons\ActionButton;
-use MoonShine\Components\FormBuilder;
-use MoonShine\Fields\File;
-use MoonShine\Fields\Hidden;
+use MoonShine\UI\Components\ActionButton;
+use MoonShine\UI\Components\FormBuilder;
+use MoonShine\UI\Fields\File;
+use MoonShine\UI\Fields\Hidden;
 
 /**
  * @method static static make()
@@ -22,7 +22,7 @@ final class MediaManagerUploadButton extends ActionButton
             ->inModal(
                 __('Upload'),
                 fn(mixed $data): FormBuilder => FormBuilder::make(
-                    $this->url($data),
+                    $this->getUrl($data),
                 )
                     ->fields([
                         Hidden::make('dir'),
@@ -33,7 +33,7 @@ final class MediaManagerUploadButton extends ActionButton
                     ])
                     ->submit(__('Submit')),
             )
-            ->icon('heroicons.outline.cloud-arrow-up')
+            ->icon('cloud-arrow-up')
             ->showInLine();
     }
 }

@@ -10,8 +10,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Local\LocalFilesystemAdapter;
-use MoonShine\MoonShineUI;
+use MoonShine\Laravel\MoonShineUI;
+use MoonShine\Support\Enums\ToastType;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use YuriZoom\MoonShineMediaManager\Enums\MediaManagerView as MediaManagerViewEnums;
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 
 /**
@@ -54,13 +56,13 @@ class MediaManager
     /**
      * MediaManager constructor.
      *
-     * @param string $path
+     * @param  string  $path
      */
     public function __construct(string $path = '/')
     {
         $this->path = $path;
 
-        if (!empty(config('moonshine.media_manager.allowed_ext'))) {
+        if (! empty(config('moonshine.media_manager.allowed_ext'))) {
             $this->allowed = explode(',', config('moonshine.media_manager.allowed_ext'));
         }
 
@@ -73,15 +75,18 @@ class MediaManager
 
         $this->storage = Storage::disk($disk);
 
-        if (!$this->storage->getAdapter() instanceof LocalFilesystemAdapter) {
-            MoonShineUI::toast(__('moonshine-media-manager::media-manager.error.only_local_storage'), "error");
+        if (! $this->storage->getAdapter() instanceof LocalFilesystemAdapter) {
+            MoonShineUI::toast(__('moonshine-media-manager::media-manager.error.only_local_storage'), ToastType::ERROR);
         }
     }
 
     public function ls(): array
     {
-        if (!$this->exists()) {
-            MoonShineUI::toast(__('moonshine-media-manager::media-manager.error.file_not_exists', ['path' => $this->path]), "error");
+        if (! $this->exists()) {
+            MoonShineUI::toast(
+                __('moonshine-media-manager::media-manager.error.file_not_exists', ['path' => $this->path]),
+                ToastType::ERROR
+            );
             return [];
         }
 
@@ -92,8 +97,10 @@ class MediaManager
         return $this->formatDirectories($directories)
             ->merge($this->formatFiles($files))
             ->sort(function ($item) {
-                return $item['path'];
-            })->all();
+                return ($item['isDir'] ? '__' : '').$item['path'];
+            })
+            ->values()
+            ->all();
     }
 
     public function download(): StreamedResponse
@@ -122,14 +129,21 @@ class MediaManager
     }
 
     /**
-     * @param UploadedFile[] $files
-     * @return mixed
+     * @param  UploadedFile[]  $files
+     * @return bool
      */
-    public function upload(array $files = []): mixed
+    public function upload(array $files = []): bool
     {
         foreach ($files as $file) {
-            if ($this->allowed && !in_array($file->getClientOriginalExtension(), $this->allowed)) {
-                MoonShineUI::toast(__('moonshine-media-manager::media-manager.error.file_extension_not_allowed', ['ext' => $file->getClientOriginalExtension()]), "error");
+            if ($this->allowed && ! in_array($file->getClientOriginalExtension(), $this->allowed)) {
+                MoonShineUI::toast(
+                    __(
+                        'moonshine-media-manager::media-manager.error.file_extension_not_allowed',
+                        ['ext' => $file->getClientOriginalExtension()]
+                    ),
+                    ToastType::ERROR
+                );
+                return false;
             }
 
             $this->storage->putFileAs($this->path, $file, $file->getClientOriginalName());
@@ -140,7 +154,7 @@ class MediaManager
 
     public function newFolder($name): bool
     {
-        $path = rtrim($this->path, '/') . '/' . trim($name, '/');
+        $path = rtrim($this->path, '/').'/'.trim($name, '/');
 
         return $this->storage->makeDirectory($path);
     }
@@ -199,7 +213,7 @@ class MediaManager
                 'preview' => str_replace('__path__', $dir, $preview),
                 'isDir' => true,
                 'size' => '',
-                'link' => $this->indexUrl(['path' => '/' . trim($dir, '/'), 'view' => request('view')]),
+                'link' => $this->indexUrl(['path' => '/'.trim($dir, '/'), 'view' => request('view')]),
                 'url' => $this->storage->url($dir),
                 'time' => $this->getFileChangeTime($dir),
             ];
@@ -214,16 +228,18 @@ class MediaManager
 
         $folders = array_filter($folders);
 
-        $view = request('view', 'table');
+        $view = MediaManagerViewEnums::tryFrom(request('view'))
+            ?? MediaManagerViewEnums::tryFrom(config('moonshine.media_manager.default_view'))
+            ?? MediaManagerViewEnums::TABLE;
 
         $path = '';
 
-        $navigation = [$this->indexUrl(['view' => $view]) => __('moonshine-media-manager::media-manager.home')];
+        $navigation = [$this->indexUrl(['view' => $view->value]) => __('moonshine-media-manager::media-manager.home')];
 
         foreach ($folders as $folder) {
-            $path = rtrim($path, '/') . '/' . $folder;
+            $path = rtrim($path, '/').'/'.$folder;
 
-            $navigation[$this->indexUrl(['path' => $path, 'view' => $view])] = $folder;
+            $navigation[$this->indexUrl(['path' => $path, 'view' => $view->value])] = $folder;
         }
 
         return $navigation;
@@ -232,7 +248,7 @@ class MediaManager
     public function getFilePreview($file): string
     {
         return ($this->detectFileType($file) == 'image')
-            ? '<img src="' . $this->storage->url($file) . '" alt="Attachment"/>'
+            ? '<img src="'.$this->storage->url($file).'" alt="Attachment"/>'
             : '';
     }
 
@@ -259,7 +275,7 @@ class MediaManager
             $bytes /= 1024;
         }
 
-        return round($bytes, 2) . ' ' . $units[$i];
+        return round($bytes, 2).' '.$units[$i];
     }
 
     public function getFileChangeTime($file): string
@@ -271,6 +287,6 @@ class MediaManager
 
     protected function indexUrl(array $params = []): string
     {
-        return MediaManagerPage::make()->route($params);
+        return app(MediaManagerPage::class)->getRoute($params);
     }
 }

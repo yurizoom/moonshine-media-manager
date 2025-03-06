@@ -1,6 +1,6 @@
 <?php
 
-namespace YuriZoom\MoonShineMediaManager\Hellpers;
+namespace YuriZoom\MoonShineMediaManager\Helpers;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;

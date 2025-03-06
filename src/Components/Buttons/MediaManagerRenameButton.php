@@ -4,24 +4,25 @@ declare(strict_types=1);
 
 namespace YuriZoom\MoonShineMediaManager\Components\Buttons;
 
-use MoonShine\ActionButtons\ActionButton;
-use MoonShine\Components\FormBuilder;
-use MoonShine\Fields\Hidden;
-use MoonShine\Fields\Text;
+use MoonShine\Contracts\Core\TypeCasts\DataWrapperContract;
+use MoonShine\UI\Components\ActionButton;
+use MoonShine\UI\Components\FormBuilder;
+use MoonShine\UI\Fields\Hidden;
+use MoonShine\UI\Fields\Text;
 
 /**
  * @method static static make(mixed $item = null)
  */
 final class MediaManagerRenameButton extends ActionButton
 {
-    public function __construct(mixed $item = null)
+    public function __construct(?DataWrapperContract $item = null)
     {
         parent::__construct('', route('moonshine.media.manager.move'), $item);
 
         $this->inModal(
             __('moonshine-media-manager::media-manager.rename'),
             fn(mixed $data): string => (string)FormBuilder::make(
-                $this->url($data),
+                $this->getUrl($data),
             )
                 ->fields([
                     Hidden::make('Path', 'path'),
@@ -33,7 +34,7 @@ final class MediaManagerRenameButton extends ActionButton
                 ]),
         )
             ->primary()
-            ->icon('heroicons.outline.pencil')
+            ->icon('pencil')
             ->showInLine();
     }
 

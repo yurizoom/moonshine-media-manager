@@ -11,9 +11,9 @@
     </div>
     <x-slot name="outerHtml">
         <x-moonshine::link-button @click.prevent="toggleModal"
-                                  icon="heroicons.outline.globe-alt"
                                   class="{{ $class }}"
         >
+            <x-moonshine::icon icon="globe-alt"/>
             {{ $label }}
         </x-moonshine::link-button>
     </x-slot>

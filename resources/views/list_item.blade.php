@@ -18,7 +18,7 @@
             @endforeach
         </div>
         <x-slot:toggler>
-            <x-moonshine::icon icon="heroicons.ellipsis-horizontal"/>
+            <x-moonshine::icon icon="ellipsis-horizontal"/>
         </x-slot:toggler>
     </x-moonshine::dropdown>
 </div>

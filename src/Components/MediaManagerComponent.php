@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace YuriZoom\MoonShineMediaManager\Components;
 
-use MoonShine\Components\MoonShineComponent;
+use MoonShine\UI\Components\MoonShineComponent;
 use YuriZoom\MoonShineMediaManager\MediaManager;
 
 /**
@@ -12,11 +12,6 @@ use YuriZoom\MoonShineMediaManager\MediaManager;
  */
 final class MediaManagerComponent extends MoonShineComponent
 {
-    public function __construct()
-    {
-        //
-    }
-
     public function getView(): string
     {
         return 'moonshine-media-manager::' . moonshineRequest()->get('view', config('moonshine.media_manager.default_view'));

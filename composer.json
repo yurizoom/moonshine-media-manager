@@ -13,7 +13,7 @@
     ],
     "require": {
         "php": "^8.2",
-        "moonshine/moonshine": "^2.9"
+        "moonshine/moonshine": "^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -21,7 +21,7 @@
         }
     },
     "conflict": {
-        "moonshine/moonshine": "<2.0"
+        "moonshine/moonshine": "<3.0"
     },
     "extra": {
         "laravel": {

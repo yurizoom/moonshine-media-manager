@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace YuriZoom\MoonShineMediaManager\Components\Buttons;
 
-use MoonShine\Components\MoonShineComponent;
-use YuriZoom\MoonShineMediaManager\MediaManager;
+use MoonShine\UI\Components\MoonShineComponent;
 
 /**
  * @method static static make(string $url)
@@ -14,9 +13,9 @@ final class MediaManagerUrlButton extends MoonShineComponent
 {
     protected string $label = '';
 
-    public function __construct(private readonly string $url)
+    public function __construct(protected string $url)
     {
-        //
+        parent::__construct();
     }
 
     public function getView(): string
@@ -29,7 +28,7 @@ final class MediaManagerUrlButton extends MoonShineComponent
         return [
             'label' => $this->label,
             'url' => $this->url,
-            'class' => $this->attributes()->get('class'),
+            'class' => $this->getAttributes()->get('class'),
         ];
     }
 

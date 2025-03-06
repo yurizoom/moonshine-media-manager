@@ -11,8 +11,8 @@
             placeholder="Path"
             value="{{ $view }}"
         />
-        <x-moonshine::link-button
-            icon="heroicons.outline.arrow-small-right"
-        ></x-moonshine::link-button>
+        <x-moonshine::link-button>
+            <x-moonshine::icon icon="arrow-small-right"/>
+        </x-moonshine::link-button>
     </form>
 </div>

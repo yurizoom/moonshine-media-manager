@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace YuriZoom\MoonShineMediaManager\Components\Buttons;
 
-use MoonShine\ActionButtons\ActionButton;
-use MoonShine\Components\FormBuilder;
-use MoonShine\Fields\Hidden;
-use MoonShine\Fields\Text;
+use MoonShine\UI\Components\ActionButton;
+use MoonShine\UI\Components\FormBuilder;
+use MoonShine\UI\Fields\Hidden;
+use MoonShine\UI\Fields\Text;
 
 /**
  * @method static static make()
@@ -21,7 +21,7 @@ final class MediaManagerNewFolderButton extends ActionButton
         $this->inModal(
             __('New folder'),
             fn(mixed $data): string => (string)FormBuilder::make(
-                $this->url($data),
+                $this->getUrl($data),
             )
                 ->fields([
                     Hidden::make('dir'),
@@ -32,7 +32,7 @@ final class MediaManagerNewFolderButton extends ActionButton
                 ])
                 ->submit(__('Submit')),
         )
-            ->icon('heroicons.outline.folder')
+            ->icon('folder')
             ->secondary()
             ->showInLine();
     }
