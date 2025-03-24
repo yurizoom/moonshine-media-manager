@@ -26,7 +26,7 @@ $ composer require yurizoom/moonshine-media-manager
 
 ```php
 [
-    'media-manager' => [
+    'media_manager' => [
         // Автоматическое добавление в меню
         'auto_menu' => true,
         // Корневая директория
