@@ -8,7 +8,6 @@ use MoonShine\Laravel\Pages\Page;
 use MoonShine\UI\Components\FlexibleRender;
 use MoonShine\UI\Components\Layout\Box;
 use Symfony\Component\Routing\Attribute\Route;
-use YuriZoom\MoonShineMediaManager\Helpers\URLGenerator;
 use YuriZoom\MoonShineMediaManager\MediaManager;
 
 #[Route('media')]
@@ -28,22 +27,13 @@ class MediaManagerPage extends Page
 
     public function components(): array
     {
-        $path = moonshineRequest()->get('path', '/');
-        $view = URLGenerator::getView();
-
-        $manager = new MediaManager($path);
+        $manager = new MediaManager('/');
 
         return [
             Box::make([
                 FlexibleRender::make(
                     view('moonshine-media-manager::manager', [
-                        'initial' => [
-                            'files' => $manager->ls(),
-                            'navigation' => $manager->navigation(),
-                            'urls' => $manager->urls(),
-                            'path' => $path,
-                            'view' => $view->value,
-                        ],
+                        'urls' => $manager->urls(),
                     ])->render(),
                 ),
             ]),

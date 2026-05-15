@@ -79,11 +79,18 @@ class MediaManagerController extends Controller
         $manager = new MediaManager($dir);
 
         try {
-            $manager->upload($files);
+            $result = $manager->upload($files);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
                 'message' => $e->getMessage(),
+            ]);
+        }
+
+        if (! $result) {
+            return response()->json([
+                'status' => false,
+                'message' => __('moonshine-media-manager::media-manager.error.file_extension_not_allowed', ['ext' => '']),
             ]);
         }
 

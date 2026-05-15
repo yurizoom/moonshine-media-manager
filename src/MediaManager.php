@@ -128,16 +128,10 @@ class MediaManager
     public function upload(array $files = []): bool
     {
         foreach ($files as $file) {
-            if ($this->allowed && ! in_array($file->getClientOriginalExtension(), $this->allowed)) {
-                toast(
-                    __(
-                        'moonshine-media-manager::media-manager.error.file_extension_not_allowed',
-                        ['ext' => $file->getClientOriginalExtension()]
-                    ),
-                    ToastType::ERROR
+            if ($this->allowed && ! in_array(strtolower($file->getClientOriginalExtension()), $this->allowed)) {
+                throw new \RuntimeException(
+                    __('moonshine-media-manager::media-manager.error.file_extension_not_allowed', ['ext' => $file->getClientOriginalExtension()])
                 );
-
-                return false;
             }
 
             $path = rtrim($this->path, '/').'/'.$file->getClientOriginalName();
