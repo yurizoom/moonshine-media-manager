@@ -16,9 +16,18 @@ return [
     'rename' => 'Rename & Move',
     'new_path' => 'New path',
     'confirm_message' => 'Are you sure?',
+    'pick' => 'Select',
+    'selected_files' => 'Selected files',
+    'empty_directory' => 'Empty directory',
+    'uploaded_successfully' => 'Uploaded successfully',
+    'deleted_successfully' => 'Deleted successfully',
+    'moved_successfully' => 'Moved successfully',
+    'folder_created_successfully' => 'Folder created successfully',
+    'go_to_folder' => 'Go to folder',
+    'remove' => 'Remove',
     'error' => [
         'file_extension_not_allowed' => "File extension :ext is not allowed",
         'only_local_storage' => "Media manager extension only works for local storage",
-        'file_not_exists' => "File or directory :path not exists",
-    ]
+        'file_not_exists' => "File not found",
+    ],
 ];
