@@ -1,13 +1,157 @@
+/**
+ * MoonShine Media Manager v3.0
+ *
+ * Architecture (SOLID):
+ * - Store:  Alpine.store('mm') — singleton state (open/close, selection, config)
+ * - Browser: Alpine.data('mmBrowser') — file listing, upload, CRUD operations
+ * - Picker:  Alpine.data('mmPicker')  — field value binding, preview, trigger
+ *
+ * Communication: Picker → Store.open() → Browser → Store.confirm() → Picker callback
+ */
 document.addEventListener('alpine:init', () => {
-    Alpine.data('mediaManager', (initial) => ({
-        files: initial.files || [],
-        path: initial.path || '/',
-        view: initial.view || 'table',
-        navigation: initial.navigation || {},
-        urls: initial.urls || {},
-        loading: false,
-        jumpPath: initial.path || '/',
 
+    // =========================================================================
+    // Store — singleton media manager state
+    // =========================================================================
+    Alpine.store('mm', {
+        /** @type {boolean} */
+        isOpen: false,
+
+        /** @type {boolean} */
+        multiple: false,
+
+        /** @type {string[]} */
+        allowedTypes: [],
+
+        /** @type {string[]} */
+        allowedExtensions: [],
+
+        /** @type {Array<{path: string, url: string, type: string}>} */
+        selected: [],
+
+        /** @type {Function|null} */
+        _callback: null,
+
+        /**
+         * Open the media manager.
+         * @param {{multiple?: boolean, allowedTypes?: string[], allowedExtensions?: string[], existingPaths?: string[], baseUrl?: string}} config
+         * @param {Function} callback — receives selected file path(s)
+         */
+        open(config = {}, callback) {
+            this.multiple = config.multiple ?? false;
+            this.allowedTypes = config.allowedTypes ?? [];
+            this.allowedExtensions = config.allowedExtensions ?? [];
+            this._callback = typeof callback === 'function' ? callback : null;
+
+            const baseUrl = config.baseUrl ?? '';
+            this.selected = (config.existingPaths ?? [])
+                .filter(p => typeof p === 'string' && p.length > 0)
+                .map(p => ({ path: p, url: baseUrl + '/' + p }));
+
+            this.isOpen = true;
+
+            window.MoonShine?.ui?.toggleOffCanvas('media-manager');
+        },
+
+        close() {
+            this.isOpen = false;
+            this._callback = null;
+
+            window.MoonShine?.ui?.toggleOffCanvas('media-manager');
+        },
+
+        /** Confirm selection and call the picker's callback. */
+        confirm() {
+            if (!this._callback) {
+                return;
+            }
+
+            if (this.multiple) {
+                this._callback(this.selected.map(f => f.path));
+            } else {
+                this._callback(this.selected[0]?.path ?? null);
+            }
+
+            this._callback = null;
+            this.isOpen = false;
+
+            window.MoonShine?.ui?.toggleOffCanvas('media-manager');
+        },
+
+        /**
+         * Toggle a file in the selection.
+         * @param {{path: string, url: string, type: string}} file
+         */
+        toggleFile(file) {
+            if (!this.multiple) {
+                this.selected = this.isSelected(file.path) ? [] : [file];
+                return;
+            }
+
+            const index = this.selected.findIndex(f => f.path === file.path);
+            if (index >= 0) {
+                this.selected.splice(index, 1);
+            } else {
+                this.selected.push(file);
+            }
+        },
+
+        /**
+         * @param {string} filePath
+         * @returns {boolean}
+         */
+        isSelected(filePath) {
+            return this.selected.some(f => f.path === filePath);
+        },
+
+        /** @returns {boolean} */
+        get hasSelection() {
+            return this.selected.length > 0;
+        },
+
+        /**
+         * Reorder selected by dragging item from one index to another.
+         * @param {number} fromIdx
+         * @param {number} toIdx
+         */
+        moveSelected(fromIdx, toIdx) {
+            if (fromIdx === toIdx) {
+                return;
+            }
+
+            const item = this.selected.splice(fromIdx, 1)[0];
+            this.selected.splice(toIdx, 0, item);
+        },
+    });
+
+    // =========================================================================
+    // Browser — file browsing component (renders inside OffCanvas)
+    // =========================================================================
+    Alpine.data('mmBrowser', (urls = {}, modalPrefix = 'mm-') => ({
+        files: [],
+
+        path: '/',
+
+        view: 'table',
+
+        navigation: {},
+
+        urls: urls,
+
+        loading: false,
+
+        modalPrefix: modalPrefix,
+
+        /** @type {number|null} Drag source index for selected bar reorder */
+        selectedDragIdx: null,
+
+        /** @type {string} */
+        jumpPath: '/',
+
+        /** @type {string} Path of file to highlight after loading (set by navigateToFile) */
+        highlightPath: '',
+
+        // -- Modal form state --
         renamePath: '',
         renameNew: '',
         deleteFiles: [],
@@ -15,17 +159,22 @@ document.addEventListener('alpine:init', () => {
         newFolderName: '',
 
         init() {
-            window.addEventListener('popstate', (e) => {
-                if (e.state && e.state.path !== undefined) {
-                    this.loadFiles(e.state.path, e.state.view, false);
+            this.$nextTick(() => this.loadFiles('/'));
+
+            this.$watch('$store.mm.isOpen', (open) => {
+                if (open) {
+                    this.files = [];
+                    this.$nextTick(() => this.loadFiles('/'));
                 }
             });
         },
 
+        /** @returns {string} */
         get csrfToken() {
             return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         },
 
+        /** @returns {Object<string, string>} */
         get ajaxHeaders() {
             return {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -34,29 +183,39 @@ document.addEventListener('alpine:init', () => {
             };
         },
 
-        async loadFiles(path, view, pushState = true) {
+        /**
+         * Load files for a given path.
+         * @param {string} path
+         * @param {string|null} view
+         */
+        async loadFiles(path = '/', view = null) {
             this.loading = true;
             path = path || '/';
             view = view || this.view;
 
             try {
                 const params = new URLSearchParams({ path, view });
-                const resp = await fetch(this.urls.index + '?' + params.toString(), {
+                const store = Alpine.store('mm');
+
+                if (store.allowedTypes.length) {
+                    store.allowedTypes.forEach(t => params.append('types[]', t));
+                }
+                if (store.allowedExtensions.length) {
+                    store.allowedExtensions.forEach(e => params.append('extensions[]', e));
+                }
+
+                const response = await fetch(this.urls.index + '?' + params.toString(), {
                     headers: this.ajaxHeaders,
                 });
-                const data = await resp.json();
+                const data = await response.json();
 
                 if (data.status) {
                     this.files = data.files;
                     this.navigation = data.navigation;
-                    this.urls = data.urls;
+                    this.urls = { ...this.urls, ...data.urls };
                     this.path = data.path;
                     this.view = data.view;
                     this.jumpPath = data.path;
-
-                    if (pushState) {
-                        this.syncUrl(data.path, data.view);
-                    }
                 } else {
                     this.toast(data.message || 'Error', 'error');
                 }
@@ -65,21 +224,38 @@ document.addEventListener('alpine:init', () => {
             }
 
             this.loading = false;
+
+            if (this.highlightPath) {
+                setTimeout(() => this.scrollToHighlighted(), 150);
+            }
         },
 
-        navigate(itemPath) {
-            this.loadFiles(itemPath);
+        /**
+         * Navigate into a directory.
+         * @param {Object} item
+         */
+        navigate(item) {
+            if (!item.isDir) {
+                return;
+            }
+            this.loadFiles(this.extractPathFromUrl(item.link));
         },
 
+        /** Reload current directory. */
         refresh() {
             this.loadFiles(this.path);
         },
 
+        /**
+         * Switch between table/list view.
+         * @param {string} viewType
+         */
         switchView(viewType) {
             this.view = viewType;
             this.loadFiles(this.path, viewType);
         },
 
+        /** Navigate to the path in the quick-jump input. */
         quickJump() {
             const p = this.jumpPath.trim();
             if (p) {
@@ -87,12 +263,11 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        syncUrl(path, view) {
-            const params = new URLSearchParams({ path, view });
-            const url = this.urls.page + '?' + params.toString();
-            history.pushState({ path, view }, '', url);
-        },
-
+        /**
+         * Extract the path parameter from a URL.
+         * @param {string} url
+         * @returns {string}
+         */
         extractPathFromUrl(url) {
             try {
                 const u = new URL(url, window.location.origin);
@@ -102,34 +277,108 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        openRenameModal(file) {
-            this.renamePath = file.path;
-            this.renameNew = file.path;
-            window.MoonShine.ui.toggleModal('mm-rename');
+        navigateToFile(filePath) {
+            this.highlightPath = filePath;
+            const parts = filePath.split('/');
+            parts.pop();
+            this.loadFiles('/' + parts.join('/').replace(/^\//, ''));
         },
 
-        openDeleteModal(file) {
-            this.deleteFiles = [file.path];
-            window.MoonShine.ui.toggleModal('mm-delete');
+        scrollToHighlighted() {
+            const hp = this.highlightPath;
+
+            if (!hp) {
+                return;
+            }
+
+            const id = hp.replace(/[^a-zA-Z0-9]/g, '_');
+            const el = document.getElementById('oc-file-' + id)
+                || document.getElementById('file-' + id);
+
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            setTimeout(() => {
+                this.highlightPath = '';
+            }, 3000);
         },
+
+        dragSelectedStart(idx, event) {
+            this.selectedDragIdx = idx;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', String(idx));
+        },
+
+        dropSelectedTo(idx) {
+            if (this.selectedDragIdx === null || this.selectedDragIdx === idx) {
+                this.selectedDragIdx = null;
+                return;
+            }
+
+            Alpine.store('mm').moveSelected(this.selectedDragIdx, idx);
+            this.selectedDragIdx = null;
+        },
+
+        dragSelectedEnd() {
+            this.selectedDragIdx = null;
+        },
+
+        /**
+         * Get the basename of a file path.
+         * @param {string} path
+         * @returns {string}
+         */
+        basename(path) {
+            return path.split('/').filter(Boolean).pop() || path;
+        },
+
+        isImageUrl(url) {
+            return /\.(jpe?g|png|gif|webp|avif|bmp|svg|ico)$/i.test(url || '');
+        },
+
+        /**
+         * Download a file.
+         * @param {Object} file
+         */
+        download(file) {
+            window.open(file.download, '_blank');
+        },
+
+        // -- Modal triggers --
 
         openUploadModal() {
-            window.MoonShine.ui.toggleModal('mm-upload');
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
         },
 
         openNewFolderModal() {
             this.newFolderName = '';
-            window.MoonShine.ui.toggleModal('mm-new-folder');
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'new-folder');
+        },
+
+        openRenameModal(file) {
+            this.renamePath = file.path;
+            this.renameNew = file.path;
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'rename');
+        },
+
+        openDeleteModal(file) {
+            this.deleteFiles = [file.path];
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');
         },
 
         openUrlModal(file) {
             this.urlToShow = file.url || '';
-            window.MoonShine.ui.toggleModal('mm-url');
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'url');
         },
 
+        // -- Submit handlers --
+
         async submitUpload() {
-            const input = document.getElementById('mm-upload-input');
-            if (!input || !input.files.length) return;
+            const input = document.getElementById(this.modalPrefix + 'upload-input');
+            if (!input?.files.length) {
+                return;
+            }
 
             const formData = new FormData();
             for (const f of input.files) {
@@ -138,16 +387,16 @@ document.addEventListener('alpine:init', () => {
             formData.append('dir', this.path);
 
             try {
-                const resp = await fetch(this.urls.upload, {
+                const response = await fetch(this.urls.upload, {
                     method: 'POST',
                     body: formData,
                     headers: this.ajaxHeaders,
                 });
-                const data = await resp.json();
+                const data = await response.json();
 
                 if (data.status) {
                     this.toast(data.message || 'Uploaded', 'success');
-                    window.MoonShine.ui.toggleModal('mm-upload');
+                    window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
                     input.value = '';
                     this.refresh();
                 } else {
@@ -159,13 +408,15 @@ document.addEventListener('alpine:init', () => {
         },
 
         async submitDelete() {
-            if (!this.deleteFiles.length) return;
+            if (!this.deleteFiles.length) {
+                return;
+            }
 
             try {
                 const params = new URLSearchParams();
                 this.deleteFiles.forEach(f => params.append('files[]', f));
 
-                const resp = await fetch(this.urls.delete, {
+                const response = await fetch(this.urls.delete, {
                     method: 'POST',
                     body: params,
                     headers: {
@@ -173,11 +424,11 @@ document.addEventListener('alpine:init', () => {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                 });
-                const data = await resp.json();
+                const data = await response.json();
 
                 if (data.status) {
                     this.toast(data.message || 'Deleted', 'success');
-                    window.MoonShine.ui.toggleModal('mm-delete');
+                    window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');
                     this.deleteFiles = [];
                     this.refresh();
                 } else {
@@ -189,7 +440,9 @@ document.addEventListener('alpine:init', () => {
         },
 
         async submitRename() {
-            if (!this.renameNew.trim()) return;
+            if (!this.renameNew.trim()) {
+                return;
+            }
 
             try {
                 const params = new URLSearchParams({
@@ -197,7 +450,7 @@ document.addEventListener('alpine:init', () => {
                     new: this.renameNew,
                 });
 
-                const resp = await fetch(this.urls.move, {
+                const response = await fetch(this.urls.move, {
                     method: 'POST',
                     body: params,
                     headers: {
@@ -205,11 +458,11 @@ document.addEventListener('alpine:init', () => {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                 });
-                const data = await resp.json();
+                const data = await response.json();
 
                 if (data.status) {
                     this.toast(data.message || 'Renamed', 'success');
-                    window.MoonShine.ui.toggleModal('mm-rename');
+                    window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'rename');
                     this.refresh();
                 } else {
                     this.toast(data.message || 'Rename failed', 'error');
@@ -220,7 +473,9 @@ document.addEventListener('alpine:init', () => {
         },
 
         async submitNewFolder() {
-            if (!this.newFolderName.trim()) return;
+            if (!this.newFolderName.trim()) {
+                return;
+            }
 
             try {
                 const params = new URLSearchParams({
@@ -228,7 +483,7 @@ document.addEventListener('alpine:init', () => {
                     name: this.newFolderName,
                 });
 
-                const resp = await fetch(this.urls['new-folder'], {
+                const response = await fetch(this.urls['new-folder'], {
                     method: 'POST',
                     body: params,
                     headers: {
@@ -236,11 +491,11 @@ document.addEventListener('alpine:init', () => {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                 });
-                const data = await resp.json();
+                const data = await response.json();
 
                 if (data.status) {
                     this.toast(data.message || 'Folder created', 'success');
-                    window.MoonShine.ui.toggleModal('mm-new-folder');
+                    window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'new-folder');
                     this.newFolderName = '';
                     this.refresh();
                 } else {
@@ -251,18 +506,172 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        download(file) {
-            window.open(file.download, '_blank');
+        /**
+         * Show a toast notification via MoonShine UI.
+         * @param {string} message
+         * @param {string} type
+         */
+        toast(message, type) {
+            window.MoonShine?.ui?.toast?.(message, type);
+        },
+    }));
+
+    // =========================================================================
+    // Picker — field component for selecting files via the manager
+    // =========================================================================
+    Alpine.data('mmPicker', (config = {}) => ({
+        rawValue: config.value ?? (config.multiple ? '[]' : ''),
+
+        multiple: config.multiple ?? false,
+
+        baseUrl: config.baseUrl ?? '',
+
+        broken: [],
+
+        singleBroken: false,
+
+        get paths() {
+            if (!this.rawValue) {
+                return [];
+            }
+
+            if (this.multiple) {
+                try {
+                    return JSON.parse(this.rawValue);
+                } catch {
+                    return [];
+                }
+            }
+
+            return [this.rawValue];
         },
 
-        toast(message, type) {
-            if (window.MoonShine && window.MoonShine.ui && window.MoonShine.ui.toast) {
-                window.MoonShine.ui.toast(message, type);
+        get previewUrl() {
+            if (!this.rawValue || this.multiple) {
+                return '';
+            }
+
+            return this.baseUrl + '/' + this.rawValue;
+        },
+
+        get hasValue() {
+            if (this.multiple) {
+                return this.paths.length > 0;
+            }
+
+            return !!this.rawValue;
+        },
+
+        markBroken(idx) {
+            if (this.multiple) {
+                if (!this.broken.includes(idx)) {
+                    this.broken.push(idx);
+                }
+            } else {
+                this.singleBroken = true;
             }
         },
 
-        basename(path) {
-            return path.split('/').filter(Boolean).pop() || path;
+        pick() {
+            Alpine.store('mm').open(
+                {
+                    multiple: this.multiple,
+                    allowedTypes: config.allowedTypes ?? [],
+                    allowedExtensions: config.allowedExtensions ?? [],
+                    existingPaths: this.paths,
+                    baseUrl: this.baseUrl,
+                },
+                (result) => this.onSelected(result),
+            );
+        },
+
+        clear() {
+            this.rawValue = this.multiple ? '[]' : '';
+            this.broken = [];
+            this.singleBroken = false;
+            this.syncInput();
+        },
+
+        removeAt(idx) {
+            if (!this.multiple) {
+                return;
+            }
+
+            const paths = [...this.paths];
+            paths.splice(idx, 1);
+            this.rawValue = JSON.stringify(paths);
+            this.broken = this.broken.filter(i => i !== idx).map(i => (i > idx ? i - 1 : i));
+            this.syncInput();
+        },
+
+        dragIdx: null,
+
+        dragStart(idx, event) {
+            this.dragIdx = idx;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', String(idx));
+        },
+
+        dropTo(idx) {
+            if (this.dragIdx === null || this.dragIdx === idx) {
+                this.dragIdx = null;
+                return;
+            }
+
+            const paths = [...this.paths];
+            const [moved] = paths.splice(this.dragIdx, 1);
+            paths.splice(idx, 0, moved);
+            this.rawValue = JSON.stringify(paths);
+            this.syncInput();
+            this.dragIdx = null;
+        },
+
+        dragEnd() {
+            this.dragIdx = null;
+        },
+
+        /**
+         * Handle selection from the media manager.
+         * @param {string|string[]|null} result
+         */
+        onSelected(result) {
+            if (this.multiple) {
+                this.rawValue = JSON.stringify(result ?? []);
+            } else {
+                this.rawValue = result ?? '';
+            }
+
+            this.syncInput();
+        },
+
+        /** Sync the hidden input value so the form submits correctly. */
+        syncInput() {
+            const input = this.$el?.querySelector('input[type="hidden"]');
+            if (input) {
+                input.value = this.rawValue;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        },
+
+        /**
+         * Check if a URL points to an image file.
+         * @param {string} url
+         * @returns {boolean}
+         */
+        isImageUrl(url) {
+            if (!url) return false;
+            return /\.(jpe?g|png|gif|webp|avif|bmp|svg|ico)(\?.*)?$/i.test(url);
+        },
+
+        /**
+         * Get file extension from a path.
+         * @param {string} path
+         * @returns {string}
+         */
+        fileExt(path) {
+            if (!path) return '';
+            const parts = path.split('.');
+            return parts.length > 1 ? parts.pop().toLowerCase() : '';
         },
     }));
 });
