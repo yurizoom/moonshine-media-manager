@@ -355,16 +355,12 @@ document.addEventListener('alpine:init', () => {
             this.brokenSelectedPaths = this.brokenSelectedPaths.filter(p => selectedPaths.includes(p));
 
             const checks = store.selected.map(async (file) => {
-                if (this.isImageUrl(file.url)) {
-                    return;
-                }
-
                 if (this.brokenSelectedPaths.includes(file.path)) {
                     return;
                 }
 
                 try {
-                    const resp = await fetch(file.url, { method: 'HEAD' });
+                    const resp = await fetch(file.url, { method: 'HEAD', cache: 'no-store' });
                     if (!resp.ok) {
                         this.brokenSelectedPaths.push(file.path);
                     }
@@ -581,12 +577,12 @@ document.addEventListener('alpine:init', () => {
 
             const checks = list.map(async (p, idx) => {
                 const url = this.multiple ? this.baseUrl + '/' + p : this.previewUrl;
-                if (!url || this.isImageUrl(url)) {
+                if (!url) {
                     return;
                 }
 
                 try {
-                    const resp = await fetch(url, { method: 'HEAD' });
+                    const resp = await fetch(url, { method: 'HEAD', cache: 'no-store' });
                     if (!resp.ok) {
                         this.markBroken(idx);
                     }
