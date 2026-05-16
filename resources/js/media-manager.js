@@ -151,6 +151,9 @@ document.addEventListener('alpine:init', () => {
         /** @type {string} Path of file to highlight after loading (set by navigateToFile) */
         highlightPath: '',
 
+        /** @type {string[]} Paths of selected files that are broken (404) */
+        brokenSelectedPaths: [],
+
         // -- Modal form state --
         renamePath: '',
         renameNew: '',
@@ -164,8 +167,16 @@ document.addEventListener('alpine:init', () => {
             this.$watch('$store.mm.isOpen', (open) => {
                 if (open) {
                     this.files = [];
-                    this.$nextTick(() => this.loadFiles('/'));
+                    this.brokenSelectedPaths = [];
+                    this.$nextTick(() => {
+                        this.loadFiles('/');
+                        this.checkSelectedExist();
+                    });
                 }
+            });
+
+            this.$watch('$store.mm.selected.length', () => {
+                this.$nextTick(() => this.checkSelectedExist());
             });
         },
 
@@ -335,6 +346,34 @@ document.addEventListener('alpine:init', () => {
 
         isImageUrl(url) {
             return /\.(jpe?g|png|gif|webp|avif|bmp|svg|ico)$/i.test(url || '');
+        },
+
+        async checkSelectedExist() {
+            const store = Alpine.store('mm');
+            const selectedPaths = store.selected.map(f => f.path);
+
+            this.brokenSelectedPaths = this.brokenSelectedPaths.filter(p => selectedPaths.includes(p));
+
+            const checks = store.selected.map(async (file) => {
+                if (this.isImageUrl(file.url)) {
+                    return;
+                }
+
+                if (this.brokenSelectedPaths.includes(file.path)) {
+                    return;
+                }
+
+                try {
+                    const resp = await fetch(file.url, { method: 'HEAD' });
+                    if (!resp.ok) {
+                        this.brokenSelectedPaths.push(file.path);
+                    }
+                } catch {
+                    this.brokenSelectedPaths.push(file.path);
+                }
+            });
+
+            await Promise.all(checks);
         },
 
         /**
@@ -530,6 +569,35 @@ document.addEventListener('alpine:init', () => {
 
         singleBroken: false,
 
+        init() {
+            this.$nextTick(() => this.checkFilesExist());
+        },
+
+        async checkFilesExist() {
+            const list = this.paths;
+            if (!list.length) {
+                return;
+            }
+
+            const checks = list.map(async (p, idx) => {
+                const url = this.multiple ? this.baseUrl + '/' + p : this.previewUrl;
+                if (!url || this.isImageUrl(url)) {
+                    return;
+                }
+
+                try {
+                    const resp = await fetch(url, { method: 'HEAD' });
+                    if (!resp.ok) {
+                        this.markBroken(idx);
+                    }
+                } catch {
+                    this.markBroken(idx);
+                }
+            });
+
+            await Promise.all(checks);
+        },
+
         get paths() {
             if (!this.rawValue) {
                 return [];
@@ -622,6 +690,18 @@ document.addEventListener('alpine:init', () => {
             const [moved] = paths.splice(this.dragIdx, 1);
             paths.splice(idx, 0, moved);
             this.rawValue = JSON.stringify(paths);
+
+            // Remap broken indices so they follow their files, not positions
+            this.broken = this.broken.map(i => {
+                if (i === this.dragIdx) return idx;
+                if (this.dragIdx < idx) {
+                    // Moved forward: items in (dragIdx, idx] shift left by 1
+                    return (i > this.dragIdx && i <= idx) ? i - 1 : i;
+                }
+                // Moved backward: items in [idx, dragIdx) shift right by 1
+                return (i >= idx && i < this.dragIdx) ? i + 1 : i;
+            });
+
             this.syncInput();
             this.dragIdx = null;
         },

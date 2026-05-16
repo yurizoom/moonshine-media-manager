@@ -73,18 +73,28 @@
                                     title="{{ __('moonshine-media-manager::media-manager.remove') }}"
                             >×</button>
                         </div>
-                        <template x-if="isImageUrl(file.url)">
+                        <template x-if="isImageUrl(file.url) && !brokenSelectedPaths.includes(file.path)">
                             <div style="width:64px;height:64px;border-radius:6px;overflow:hidden;position:relative;">
                                 <img :src="file.url"
                                      style="width:100%;height:100%;object-fit:cover;display:block;"
                                      :alt="file.path.split('/').pop()"
-                                     @@error="$el.parentElement.innerHTML='<div style=&quot;width:64px;height:64px;border-radius:6px;border:1px dashed #ef4444;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,0.06);&quot;><svg style=&quot;width:24px;height:24px;color:#ef4444;&quot; fill=&quot;none&quot; viewBox=&quot;0 0 24 24&quot; stroke-width=&quot;1.5&quot; stroke=&quot;currentColor&quot;><path stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot; d=&quot;M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z&quot;/></svg></div>'"
+                                     @@error="if(!brokenSelectedPaths.includes(file.path)) brokenSelectedPaths.push(file.path)"
                                 >
                             </div>
                         </template>
-                        <template x-if="!isImageUrl(file.url)">
+                        <template x-if="isImageUrl(file.url) && brokenSelectedPaths.includes(file.path)">
+                            <div style="width:64px;height:64px;border-radius:6px;border:1px dashed #ef4444;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,0.06);">
+                                <svg style="width:24px;height:24px;color:#ef4444;" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+                            </div>
+                        </template>
+                        <template x-if="!isImageUrl(file.url) && !brokenSelectedPaths.includes(file.path)">
                             <div style="width:64px;height:64px;border-radius:6px;border:1px solid var(--color-gray-200, #e5e7eb);display:flex;align-items:center;justify-content:center;background:var(--color-gray-50, #f9fafb);">
                                 <x-moonshine::icon icon="document" style="width:28px;height:28px;color:#9ca3af;display:block;margin:auto;"/>
+                            </div>
+                        </template>
+                        <template x-if="!isImageUrl(file.url) && brokenSelectedPaths.includes(file.path)">
+                            <div style="width:64px;height:64px;border-radius:6px;border:1px dashed #ef4444;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,0.06);">
+                                <svg style="width:24px;height:24px;color:#ef4444;" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
                             </div>
                         </template>
                         <span style="font-size:10px;color:#888;width:64px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;"
