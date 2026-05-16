@@ -42,11 +42,12 @@ php artisan vendor:publish --tag=media-manager-assets
 ],
 ```
 
-### Подключение OffCanvas и JS
+### Подключение OffCanvas, JS и CSS
 
 В `app/MoonShine/Layouts/MoonShineLayout.php`:
 
 ```php
+use MoonShine\AssetManager\Css;
 use MoonShine\AssetManager\Js;
 use YuriZoom\MoonShineMediaManager\Components\MediaManagerOffCanvas;
 
@@ -57,6 +58,7 @@ final class MoonShineLayout extends AppLayout
         return [
             ...parent::assets(),
             Js::make('/vendor/media-manager/media-manager.js'),
+            Css::make('/vendor/media-manager/media-manager.css'),
         ];
     }
 
@@ -243,6 +245,24 @@ protected function menu(): array
         MenuItem::make(new MediaManagerPage()),
     ];
 }
+```
+
+---
+
+## Разработка
+
+Для сборки ассетов (JS + CSS) из исходников:
+
+```bash
+cd modules/moonshine-media-manager
+npm install
+npm run build
+```
+
+Готовые файлы появятся в `dist/`. Для публикации в проекте:
+
+```bash
+php artisan vendor:publish --tag=media-manager-assets --force
 ```
 
 ---
