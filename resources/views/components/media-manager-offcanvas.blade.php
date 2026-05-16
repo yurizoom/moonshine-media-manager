@@ -10,42 +10,7 @@
     <div x-data="mmBrowser({{ Js::from($urls) }})">
 
         {{-- Toolbar --}}
-        <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
-            <div class="flex items-center gap-2">
-                <x-moonshine::link-button @click.prevent="refresh()" class="btn-warning">
-                    <x-moonshine::icon icon="arrow-path"/>
-                </x-moonshine::link-button>
-
-                <x-moonshine::link-button @click.prevent="openUploadModal()" class="btn-success">
-                    <x-moonshine::icon icon="cloud-arrow-up"/>
-                </x-moonshine::link-button>
-
-                <x-moonshine::link-button @click.prevent="openNewFolderModal()" class="btn-secondary">
-                    <x-moonshine::icon icon="folder-plus"/>
-                </x-moonshine::link-button>
-
-                <x-moonshine::link-button @click.prevent="switchView('table')">
-                    <x-moonshine::icon icon="list-bullet" x-bind:class="view === 'table' ? 'text-primary' : ''"/>
-                </x-moonshine::link-button>
-
-                <x-moonshine::link-button @click.prevent="switchView('list')">
-                    <x-moonshine::icon icon="squares-2x2" x-bind:class="view === 'list' ? 'text-primary' : ''"/>
-                </x-moonshine::link-button>
-            </div>
-
-            {{-- Quick Jump --}}
-            <div class="flex">
-                <x-moonshine::form.input
-                    x-model="jumpPath"
-                    @keydown.enter.prevent="quickJump()"
-                    placeholder="Path"
-                    class="w-48"
-                />
-                <x-moonshine::link-button @click.prevent="quickJump()">
-                    <x-moonshine::icon icon="arrow-small-right"/>
-                </x-moonshine::link-button>
-            </div>
-        </div>
+        @include('moonshine-media-manager::partials.browser-toolbar')
 
         {{-- Selected files bar --}}
         <div x-show="$store.mm.hasSelection && !loading" x-cloak class="mb-4">
@@ -180,6 +145,7 @@
                                         x-show="!file.isDir"
                                         @click.prevent="download(file)"
                                         class="btn-sm btn-success"
+                                        title="{{ __('moonshine-media-manager::media-manager.tooltip.download') }}"
                                     >
                                         <x-moonshine::icon icon="cloud-arrow-down"/>
                                     </x-moonshine::link-button>
@@ -187,6 +153,7 @@
                                     <x-moonshine::link-button
                                         @click.prevent="openRenameModal(file)"
                                         class="btn-sm btn-primary"
+                                        title="{{ __('moonshine-media-manager::media-manager.tooltip.rename') }}"
                                     >
                                         <x-moonshine::icon icon="pencil"/>
                                     </x-moonshine::link-button>
@@ -194,6 +161,7 @@
                                     <x-moonshine::link-button
                                         @click.prevent="openDeleteModal(file)"
                                         class="btn-sm btn-error"
+                                        title="{{ __('moonshine-media-manager::media-manager.tooltip.delete') }}"
                                     >
                                         <x-moonshine::icon icon="trash"/>
                                     </x-moonshine::link-button>
@@ -290,52 +258,7 @@
         </div>
 
         {{-- Modals --}}
-        <x-moonshine::modal name="mm-upload" title="{{ __('moonshine-media-manager::media-manager.upload') }}" :closeOutside="true">
-            <form @submit.prevent="submitUpload()">
-                <div class="flex flex-col gap-4">
-                    <input type="file" id="mm-upload-input" name="files[]" multiple required class="file-input" />
-                    <x-moonshine::form.button type="submit">
-                        {{ __('moonshine-media-manager::media-manager.submit') }}
-                    </x-moonshine::form.button>
-                </div>
-            </form>
-        </x-moonshine::modal>
-
-        <x-moonshine::modal name="mm-rename" title="{{ __('moonshine-media-manager::media-manager.rename') }}" :closeOutside="true">
-            <form @submit.prevent="submitRename()">
-                <div class="flex flex-col gap-4">
-                    <x-moonshine::form.input x-model="renameNew" placeholder="{{ __('moonshine-media-manager::media-manager.new_path') }}" />
-                    <x-moonshine::form.button type="submit">
-                        {{ __('moonshine-media-manager::media-manager.submit') }}
-                    </x-moonshine::form.button>
-                </div>
-            </form>
-        </x-moonshine::modal>
-
-        <x-moonshine::modal name="mm-new-folder" title="{{ __('moonshine-media-manager::media-manager.new_folder') }}" :closeOutside="true">
-            <form @submit.prevent="submitNewFolder()">
-                <div class="flex flex-col gap-4">
-                    <x-moonshine::form.input x-model="newFolderName" placeholder="{{ __('moonshine-media-manager::media-manager.name') }}" />
-                    <x-moonshine::form.button type="submit">
-                        {{ __('moonshine-media-manager::media-manager.submit') }}
-                    </x-moonshine::form.button>
-                </div>
-            </form>
-        </x-moonshine::modal>
-
-        <x-moonshine::modal name="mm-delete" title="{{ __('moonshine-media-manager::media-manager.delete') }}" :closeOutside="true">
-            <div class="flex flex-col gap-4">
-                <p>{{ __('moonshine-media-manager::media-manager.confirm_message') }}</p>
-                <div class="flex gap-2 justify-end">
-                    <x-moonshine::form.button @click.prevent="window.MoonShine?.ui?.toggleModal(modalPrefix + 'delete')" class="btn-secondary">
-                        {{ __('moonshine-media-manager::media-manager.close') }}
-                    </x-moonshine::form.button>
-                    <x-moonshine::form.button @click.prevent="submitDelete()" class="btn-error">
-                        {{ __('moonshine-media-manager::media-manager.delete') }}
-                    </x-moonshine::form.button>
-                </div>
-            </div>
-        </x-moonshine::modal>
+        @include('moonshine-media-manager::partials.browser-modals')
 
     </div>
 </x-moonshine::off-canvas>
