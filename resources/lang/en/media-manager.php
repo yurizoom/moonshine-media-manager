@@ -17,6 +17,7 @@ return [
     'new_path' => 'New path',
     'confirm_message' => 'Are you sure?',
     'pick' => 'Select',
+    'save' => 'Save',
     'selected_files' => 'Selected files',
     'empty_directory' => 'Empty directory',
     'uploaded_successfully' => 'Uploaded successfully',

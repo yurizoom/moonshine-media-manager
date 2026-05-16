@@ -17,6 +17,7 @@ return [
     'new_path' => 'Новый путь',
     'confirm_message' => 'Вы уверены, что хотите удалить?',
     'pick' => 'Выбрать',
+    'save' => 'Сохранить',
     'selected_files' => 'Выбранные файлы',
     'empty_directory' => 'Папка пуста',
     'uploaded_successfully' => 'Файлы загружены',

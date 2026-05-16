@@ -65,14 +65,16 @@
                     </div>
                 </template>
             </div>
-            <div class="mm-confirm-bar">
-                <x-moonshine::form.button @click.prevent="$store.mm.confirm()" class="btn-primary btn-sm">
-                    {{ __('moonshine-media-manager::media-manager.pick') }}
-                </x-moonshine::form.button>
-                <x-moonshine::form.button @click.prevent="$store.mm.close()" class="btn-secondary btn-sm">
-                    {{ __('moonshine-media-manager::media-manager.close') }}
-                </x-moonshine::form.button>
-            </div>
+        </div>
+
+        {{-- Always visible action buttons --}}
+        <div class="mm-confirm-bar">
+            <x-moonshine::form.button @click.prevent="$store.mm.confirm()" class="btn-primary btn-sm">
+                {{ __('moonshine-media-manager::media-manager.save') }}
+            </x-moonshine::form.button>
+            <x-moonshine::form.button @click.prevent="$store.mm.close()" class="btn-secondary btn-sm">
+                {{ __('moonshine-media-manager::media-manager.close') }}
+            </x-moonshine::form.button>
         </div>
 
         @include('moonshine-media-manager::partials.browser-breadcrumbs')
