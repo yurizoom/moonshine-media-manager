@@ -11,6 +11,7 @@ return [
     'time' => 'Time',
     'size' => 'Size',
     'home' => 'Home',
+    'title' => 'Media Manager',
     'close' => 'Close',
     'url' => 'Url',
     'rename' => 'Rename & Move',
