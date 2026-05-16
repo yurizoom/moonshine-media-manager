@@ -254,7 +254,6 @@ protected function menu(): array
 Для сборки ассетов (JS + CSS) из исходников:
 
 ```bash
-cd modules/moonshine-media-manager
 npm install
 npm run build
 ```

@@ -6,7 +6,7 @@
 
 **Архитектура: от Blade-компонентов к Alpine.js**
 
-Весь интерфейс переписан с нуля. Вместо 12 кнопок-компонентов, 5 view-классов и 7 blade-частей — единый JS-файл (~680 строк) с тремя Alpine-компонентами:
+Весь интерфейс переписан с нуля.
 
 - `Alpine.store('mm')` — singleton-стейт (открытие/закрытие, выделение, конфиг)
 - `Alpine.data('mmBrowser')` — файловый браузер (навигация, CRUD, загрузка)
@@ -14,29 +14,20 @@
 
 Все операции (загрузка, удаление, переименование, создание папок) — AJAX через `fetch()`, без перезагрузки страницы.
 
-**Удалено 25 файлов, добавлено 4:**
-
-| Было (удалено) | Стало |
-|----------------|-------|
-| 12 кнопок-компонентов (`Buttons/*`) | inline Alpine-действия в blade |
-| 5 view-компонентов (`Components/*`) | `MediaManagerOffCanvas` + `MediaManagerPicker` |
-| 7 blade-частей (`buttons/*`, `list.blade.php`, `table.blade.php`, ...) | 3 blade-шаблона (offcanvas, picker, manager) |
-| Full-page reload на каждое действие | AJAX-запросы через fetch |
-
 ## Новые возможности
 
 - **`MediaManagerPicker`** — поле для выбора файлов из менеджера прямо в форме
-  - `allowedTypes()` — фильтр по типу (`image`, `pdf`, `video`, `audio`, `word`, `code`, `zip`, `txt`, `ppt`)
-  - `allowedExtensions()` — фильтр по конкретным расширениям
-  - `multiple()` — множественный выбор
-  - Drag-and-drop reorder (перетаскивание для изменения порядка)
-  - Проверка существования файлов (broken state с иконкой предупреждения)
-  - Превью изображений (клик → MoonShine img-popup модалка)
-  - Иконки с расширением для не-изображений (PDF, DOC, XLS и т.д.)
+    - `allowedTypes()` — фильтр по типу (`image`, `pdf`, `video`, `audio`, `word`, `code`, `zip`, `txt`, `ppt`)
+    - `allowedExtensions()` — фильтр по конкретным расширениям
+    - `multiple()` — множественный выбор
+    - Drag-and-drop reorder (перетаскивание для изменения порядка)
+    - Проверка существования файлов (broken state с иконкой предупреждения)
+    - Превью изображений (клик → MoonShine img-popup модалка)
+    - Иконки с расширением для не-изображений (PDF, DOC, XLS и т.д.)
 
 - **`MediaManagerOffCanvas`** — глобальный offcanvas-компонент
-  - Рендерится один раз в layout, используется всеми picker-полями
-  - Не дублируется на standalone-странице `/media` (модалки с уникальными префиксами)
+    - Рендерится один раз в layout, используется всеми picker-полями
+    - Не дублируется на standalone-странице `/media` (модалки с уникальными префиксами)
 
 - **Интеграция с Layouts и Json** — picker работает внутри `Layouts::make()` и `Json::make()`
 
@@ -46,7 +37,7 @@
 
 ## ⚠️ Breaking Changes
 
-1. **Требуется подключить JS и OffCanvas в layout** — без этого picker-поля не работают. Старый подход (только страница `/media`) работает, но picker требует нового setup.
+1. **Требуется подключить JS, CSS и OffCanvas в layout** — без этого picker-поля не работают. Старый подход (только страница `/media`) работает, но picker требует нового setup.
 
 2. **Удалены классы кнопок** — `MediaManagerDeleteButton`, `MediaManagerUploadButton` и все остальные `Buttons/*` больше не существуют. Все действия теперь через Alpine.
 
@@ -60,7 +51,7 @@
 
 ## Миграция с v2
 
-**1. Опубликуйте JS-ассет:**
+**1. Опубликуйте ассеты:**
 
 ```bash
 php artisan vendor:publish --tag=media-manager-assets
@@ -69,6 +60,7 @@ php artisan vendor:publish --tag=media-manager-assets
 **2. Подключите в layout** (`MoonShineLayout.php`):
 
 ```php
+use MoonShine\AssetManager\Css;
 use MoonShine\AssetManager\Js;
 use YuriZoom\MoonShineMediaManager\Components\MediaManagerOffCanvas;
 
@@ -77,6 +69,7 @@ protected function assets(): array
     return [
         ...parent::assets(),
         Js::make('/vendor/media-manager/media-manager.js'),
+        Css::make('/vendor/media-manager/media-manager.css'),
     ];
 }
 
@@ -101,10 +94,23 @@ protected function getContentComponents(): array
 - `MediaManagerComponent` → `MediaManagerOffCanvas`
 - Для выбора файлов в формах → `MediaManagerPicker`
 
+## Сборка ассетов
+
+Для разработки и внесения изменений в JS/CSS:
+
+```bash
+cd modules/moonshine-media-manager
+npm install
+npm run build        # → dist/media-manager.js + dist/media-manager.css
+```
+
+Стек: Vite 6 + lightningcss + autoprefixer + browserslist. Исходники — `resources/js/` и `resources/css/`. Готовые файлы в `dist/` публикуются через `php artisan vendor:publish --tag=media-manager-assets`.
+
 ## Файловая структура v4
 
 ```
 resources/
+  css/media-manager.css                        ← стили (CSS-переменные, компоненты)
   js/media-manager.js                          ← ядро (store + browser + picker)
   views/
     manager.blade.php                           ← standalone страница /media
@@ -112,9 +118,21 @@ resources/
       media-manager-offcanvas.blade.php         ← offcanvas + модалки
     fields/
       media-manager-picker.blade.php            ← picker-поле
+    partials/
+      browser-toolbar.blade.php                 ← общие partials
+      browser-modals.blade.php
+      browser-breadcrumbs.blade.php
+      browser-loading.blade.php
+      browser-table.blade.php
+      browser-list.blade.php
+      browser-empty-state.blade.php
+      icon-broken.blade.php                     ← SVG иконка "файл не найден"
+dist/
+  media-manager.js                              ← минифицированный JS (готовый к публикации)
+  media-manager.css                             ← скомпилированный CSS (autoprefixer + lightningcss)
 src/
   MediaManager.php                              ← backend (ls, upload, delete, move)
-  MediaManagerServiceProvider.php               ← регистрация
+  MediaManagerServiceProvider.php               ← регистрация + публикация ассетов
   Controllers/MediaManagerController.php        ← AJAX endpoints
   Pages/MediaManagerPage.php                    ← страница /media
   Components/
