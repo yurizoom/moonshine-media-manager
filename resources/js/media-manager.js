@@ -1,5 +1,5 @@
 /**
- * MoonShine Media Manager v3.0
+ * MoonShine Media Manager v4.0
  *
  * Architecture (SOLID):
  * - Store:  Alpine.store('mm') — singleton state (open/close, selection, config)
