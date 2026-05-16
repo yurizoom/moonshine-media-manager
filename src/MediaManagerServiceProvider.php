@@ -20,7 +20,8 @@ class MediaManagerServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/media-manager.php', 'moonshine.media_manager');
 
         $this->publishes([
-            __DIR__.'/../resources/js/media-manager.js' => public_path('vendor/media-manager/media-manager.js'),
+            __DIR__.'/../dist/media-manager.js' => public_path('vendor/media-manager/media-manager.js'),
+            __DIR__.'/../dist/media-manager.css' => public_path('vendor/media-manager/media-manager.css'),
         ], 'media-manager-assets');
 
         $core->pages([

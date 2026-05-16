@@ -19,8 +19,7 @@
         </x-slot:thead>
         <x-slot:tbody>
             <template x-for="file in files" :key="file.path">
-                <tr :style="highlightPath === file.path ? 'background:rgba(245,158,11,0.12);box-shadow:inset 3px 0 0 #f59e0b;' : ''"
-                    :class="highlightPath !== file.path ? 'hover:bg-gray-50 dark:hover:bg-gray-800/50' : ''">
+                <tr :class="highlightPath === file.path ? 'mm-table-row--highlight' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'">
                     @if($showCheckboxes)
                         <td>
                             <template x-if="!file.isDir">
@@ -41,8 +40,8 @@
                                 <x-moonshine::icon icon="folder" class="size-5 text-yellow-500"/>
                             </template>
                             <template x-if="!file.isDir && file.type === 'image'">
-                                <div style="width:32px;height:32px;border-radius:6px;overflow:hidden;flex-shrink:0;">
-                                    <img :src="file.url" style="width:100%;height:100%;object-fit:cover;display:block;" alt=""/>
+                                <div class="mm-table-thumb">
+                                    <img :src="file.url" alt=""/>
                                 </div>
                             </template>
                             <template x-if="!file.isDir && file.type !== 'image'">
