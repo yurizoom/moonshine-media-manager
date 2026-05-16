@@ -4,7 +4,7 @@
 
 <x-moonshine::off-canvas
     name="media-manager"
-    title="{{ __('Media manager') }}"
+    title="{{ __('moonshine-media-manager::media-manager.title') }}"
     :wide="true"
 >
     <div x-data="mmBrowser({{ Js::from($urls) }})">

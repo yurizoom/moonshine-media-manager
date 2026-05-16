@@ -15,7 +15,7 @@ class MediaManagerPage extends Page
 {
     public function getTitle(): string
     {
-        return __('Media manager');
+        return __('moonshine-media-manager::media-manager.title');
     }
 
     public function getBreadcrumbs(): array
