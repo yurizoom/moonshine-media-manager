@@ -30,4 +30,16 @@ return [
         'only_local_storage' => "Media manager extension only works for local storage",
         'file_not_exists' => "File not found",
     ],
+    'tooltip' => [
+        'refresh' => 'Refresh',
+        'upload' => 'Upload files',
+        'new_folder' => 'New folder',
+        'view_table' => 'Table view',
+        'view_grid' => 'Grid view',
+        'quick_jump' => 'Go to path',
+        'download' => 'Download',
+        'show_url' => 'Show URL',
+        'rename' => 'Rename / Move',
+        'delete' => 'Delete',
+    ],
 ];
