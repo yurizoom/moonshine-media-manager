@@ -11,7 +11,7 @@ Route::group([
     'as' => 'moonshine.',
     'middleware' => [...$middleware, 'web'],
 ], function () {
-    Route::get('media', [MediaManagerController::class, 'index'])->name('media.manager.index');
+    Route::get('media/list', [MediaManagerController::class, 'index'])->name('media.manager.index');
     Route::get('media/download', [MediaManagerController::class, 'download'])->name('media.manager.download');
     Route::post('media/delete', [MediaManagerController::class, 'delete'])->name('media.manager.delete');
     Route::post('media/move', [MediaManagerController::class, 'move'])->name('media.manager.move');

@@ -17,51 +17,78 @@ use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileUploaded;
 use YuriZoom\MoonShineMediaManager\Helpers\URLGenerator;
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 
-/**
- * Class MediaManager.
- */
 class MediaManager
 {
-    /**
-     * @var string
-     */
     protected string $path = '/';
 
-    /**
-     * @var Filesystem
-     */
     protected Filesystem $storage;
 
-    /**
-     * List of allowed extensions.
-     *
-     * @var string[]
-     */
+    /** @var string[] */
     protected array $allowed = [];
 
     /**
-     * @var array
+     * Paths that should never be accessible through the media manager,
+     * even if the disk root is broad (e.g. `local` disk = storage/app/).
+     *
+     * @var string[]
      */
+    protected const BLOCKED_PATHS = [
+        'framework',
+        'logs',
+    ];
+
+    /**
+     * Mapping of allowed file extensions to their expected MIME types.
+     * Used to verify that the actual file content matches the claimed extension.
+     *
+     * @var array<string, string[]>
+     */
+    protected const EXTENSION_MIME_MAP = [
+        'jpg' => ['image/jpeg'],
+        'jpeg' => ['image/jpeg'],
+        'png' => ['image/png'],
+        'gif' => ['image/gif'],
+        'webp' => ['image/webp'],
+        'avif' => ['image/avif'],
+        'bmp' => ['image/bmp'],
+        'pdf' => ['application/pdf'],
+        'doc' => ['application/msword'],
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        'xls' => ['application/vnd.ms-excel'],
+        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        'ppt' => ['application/vnd.ms-powerpoint'],
+        'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+        'zip' => ['application/zip', 'application/x-zip-compressed'],
+        'rar' => ['application/x-rar-compressed'],
+        'tar' => ['application/x-tar'],
+        'gz' => ['application/gzip', 'application/x-gzip'],
+        'txt' => ['text/plain'],
+        'csv' => ['text/csv', 'text/plain'],
+        'mp3' => ['audio/mpeg'],
+        'wav' => ['audio/wav'],
+        'ogg' => ['audio/ogg'],
+        'mp4' => ['video/mp4'],
+        'avi' => ['video/x-msvideo'],
+        'mov' => ['video/quicktime'],
+        'mkv' => ['video/x-matroska'],
+    ];
+
     protected array $fileTypes = [
         'image' => 'png|jpg|jpeg|tmp|gif',
         'word' => 'doc|docx',
         'ppt' => 'ppt|pptx',
         'pdf' => 'pdf',
-        'code' => 'php|js|java|python|ruby|go|c|cpp|sql|m|h|json|html|aspx',
         'zip' => 'zip|tar\.gz|rar|rpm',
         'txt' => 'txt|pac|log|md',
         'audio' => 'mp3|wav|flac|3pg|aa|aac|ape|au|m4a|mpc|ogg',
         'video' => 'mkv|rmvb|flv|mp4|avi|wmv|rm|asf|mpeg',
     ];
 
-    /**
-     * MediaManager constructor.
-     *
-     * @param  string  $path
-     */
     public function __construct(string $path = '/')
     {
-        $this->path = $path;
+        $this->path = URLGenerator::sanitizePath($path);
+
+        $this->assertNotBlockedPath($this->path);
 
         if (! empty(config('moonshine.media_manager.allowed_ext'))) {
             $this->allowed = explode(',', config('moonshine.media_manager.allowed_ext'));
@@ -88,6 +115,7 @@ class MediaManager
                 __('moonshine-media-manager::media-manager.error.file_not_exists', ['path' => $this->path]),
                 ToastType::ERROR
             );
+
             return [];
         }
 
@@ -112,47 +140,48 @@ class MediaManager
     public function delete($path): bool
     {
         $paths = is_array($path) ? $path : func_get_args();
+        $deleted = false;
 
-        foreach ($paths as $path) {
-            if ($this->storage->fileExists($path)) {
-                $this->storage->delete($path);
+        foreach ($paths as $rawPath) {
+            $safePath = URLGenerator::sanitizePath($rawPath);
+            $this->assertNotBlockedPath($safePath);
+
+            if ($this->storage->fileExists($safePath)) {
+                $this->storage->delete($safePath);
+                $deleted = true;
                 if (class_exists(MediaManagerFileDeleted::class)) {
-                    MediaManagerFileDeleted::dispatch($path, $this->getDisk());
+                    MediaManagerFileDeleted::dispatch($safePath, $this->getDisk());
                 }
-            } else {
-                $this->storage->deleteDirectory($path);
+            } elseif ($this->storage->directoryExists($safePath)) {
+                $this->storage->deleteDirectory($safePath);
+                $deleted = true;
             }
         }
 
-        return true;
+        return $deleted;
     }
 
-    public function move($new): bool
+    public function move(string $new): bool
     {
-        return $this->storage->move($this->path, $new);
+        $safeNew = URLGenerator::sanitizePath($new);
+        $this->assertNotBlockedPath($safeNew);
+
+        return $this->storage->move($this->path, $safeNew);
     }
 
     /**
      * @param  UploadedFile[]  $files
-     * @return bool
      */
     public function upload(array $files = []): bool
     {
+        $maxFileSize = config('moonshine.media_manager.max_file_size', 10 * 1024 * 1024);
+
         foreach ($files as $file) {
-            if ($this->allowed && ! in_array($file->getClientOriginalExtension(), $this->allowed)) {
-                toast(
-                    __(
-                        'moonshine-media-manager::media-manager.error.file_extension_not_allowed',
-                        ['ext' => $file->getClientOriginalExtension()]
-                    ),
-                    ToastType::ERROR
-                );
+            $this->validateUploadedFile($file, $maxFileSize);
 
-                return false;
-            }
-
-            $path = rtrim($this->path, '/').'/'.$file->getClientOriginalName();
-            $this->storage->putFileAs($this->path, $file, $file->getClientOriginalName());
+            $safeName = URLGenerator::sanitizeFileName($file->getClientOriginalName());
+            $path = rtrim($this->path, '/').'/'.$safeName;
+            $this->storage->putFileAs($this->path, $file, $safeName);
             if (class_exists(MediaManagerFileUploaded::class)) {
                 MediaManagerFileUploaded::dispatch($path, $this->getDisk());
             }
@@ -161,9 +190,57 @@ class MediaManager
         return true;
     }
 
-    public function newFolder($name): bool
+    /**
+     * Validate an uploaded file for extension, MIME type, and size.
+     *
+     * @throws \RuntimeException
+     */
+    protected function validateUploadedFile(UploadedFile $file, int $maxFileSize): void
     {
-        $path = rtrim($this->path, '/').'/'.trim($name, '/');
+        // Use guessExtension() which reads actual file content (magic bytes),
+        // NOT getClientOriginalExtension() which is purely client-supplied.
+        $realExtension = strtolower($file->guessExtension() ?: '');
+        $clientExtension = strtolower($file->getClientOriginalExtension());
+
+        // Check against allowed extensions using the real (guessed) extension
+        if ($this->allowed) {
+            if (! in_array($realExtension, $this->allowed) && ! in_array($clientExtension, $this->allowed)) {
+                throw new \RuntimeException(
+                    __('moonshine-media-manager::media-manager.error.file_extension_not_allowed', ['ext' => $file->getClientOriginalExtension()])
+                );
+            }
+        }
+
+        // MIME type cross-check: verify actual MIME matches expected for the extension
+        $mimeType = $file->getMimeType();
+
+        if ($realExtension && isset(self::EXTENSION_MIME_MAP[$realExtension])) {
+            $expectedMimes = self::EXTENSION_MIME_MAP[$realExtension];
+
+            if (! in_array($mimeType, $expectedMimes, true)) {
+                throw new \RuntimeException(
+                    __('moonshine-media-manager::media-manager.error.mime_type_mismatch', [
+                        'ext' => $realExtension,
+                        'mime' => $mimeType,
+                    ])
+                );
+            }
+        }
+
+        // File size check
+        if ($file->getSize() > $maxFileSize) {
+            throw new \RuntimeException(
+                __('moonshine-media-manager::media-manager.error.file_too_large', [
+                    'max' => $this->formatBytes($maxFileSize),
+                ])
+            );
+        }
+    }
+
+    public function newFolder(string $name): bool
+    {
+        $safeName = URLGenerator::sanitizeFileName($name);
+        $path = rtrim($this->path, '/').'/'.$safeName;
 
         return $this->storage->makeDirectory($path);
     }
@@ -178,14 +255,12 @@ class MediaManager
         return config('moonshine.media_manager.disk', 'public');
     }
 
-    /**
-     * @return array
-     */
     public function urls(): array
     {
         return [
             'path' => $this->path,
-            'index' => $this->indexUrl(),
+            'index' => route('moonshine.media.manager.index'),
+            'page' => $this->indexUrl(),
             'move' => route('moonshine.media.manager.move'),
             'delete' => route('moonshine.media.manager.delete'),
             'upload' => route('moonshine.media.manager.upload'),
@@ -198,7 +273,6 @@ class MediaManager
         $files = array_map(function ($file) {
             return [
                 'download' => route('moonshine.media.manager.download', compact('file')),
-                'icon' => '',
                 'path' => $file,
                 'preview' => $this->getFilePreview($file),
                 'type' => $this->detectFileType($file),
@@ -217,14 +291,11 @@ class MediaManager
     {
         $url = $this->indexUrl(['path' => '__path__', 'view' => request('view')]);
 
-        $preview = "<a href=\"$url\"><span class=\"file-icon text-aqua\"><i class=\"fa fa-folder\"></i></span></a>";
-
-        $dirs = array_map(function ($dir) use ($preview) {
+        $dirs = array_map(function ($dir) use ($url) {
             return [
                 'download' => '',
-                'icon' => '',
                 'path' => $dir,
-                'preview' => str_replace('__path__', $dir, $preview),
+                'preview' => '',
                 'isDir' => true,
                 'size' => '',
                 'link' => $this->indexUrl(['path' => '/'.trim($dir, '/'), 'view' => request('view')]),
@@ -257,14 +328,16 @@ class MediaManager
         return $navigation;
     }
 
-    public function getFilePreview($file): string
+    public function getFilePreview(string $file): string
     {
-        return ($this->detectFileType($file) == 'image')
-            ? '<img src="'.$this->storage->url($file).'" alt="Attachment"/>'
-            : '';
+        if ($this->detectFileType($file) !== 'image') {
+            return '';
+        }
+
+        return '<img src="'.e($this->storage->url($file)).'" alt="Attachment"/>';
     }
 
-    protected function detectFileType($file): bool|string
+    protected function detectFileType(string $file): bool|string
     {
         $extension = File::extension($file);
 
@@ -277,9 +350,13 @@ class MediaManager
         return false;
     }
 
-    public function getFilesize($file): string
+    public function getFilesize(string $file): string
     {
-        $bytes = $this->storage->size($file);
+        try {
+            $bytes = $this->storage->size($file);
+        } catch (\Throwable) {
+            return '—';
+        }
 
         $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
 
@@ -290,9 +367,13 @@ class MediaManager
         return round($bytes, 2).' '.$units[$i];
     }
 
-    public function getFileChangeTime($file): string
+    public function getFileChangeTime(string $file): string
     {
-        $time = $this->storage->lastModified($file);
+        try {
+            $time = $this->storage->lastModified($file);
+        } catch (\Throwable) {
+            return '—';
+        }
 
         return date('Y-m-d H:i:s', $time);
     }
@@ -300,5 +381,36 @@ class MediaManager
     protected function indexUrl(array $params = []): string
     {
         return app(MediaManagerPage::class)->getRoute($params);
+    }
+
+    /**
+     * Prevent access to sensitive paths that should never be exposed
+     * through the media manager, regardless of disk configuration.
+     *
+     * @throws \RuntimeException
+     */
+    protected function assertNotBlockedPath(string $path): void
+    {
+        $firstSegment = ltrim($path, '/');
+        $firstSegment = explode('/', $firstSegment)[0] ?? '';
+
+        foreach (self::BLOCKED_PATHS as $blocked) {
+            if (strtolower($firstSegment) === $blocked) {
+                throw new \RuntimeException(
+                    __('moonshine-media-manager::media-manager.error.path_not_allowed')
+                );
+            }
+        }
+    }
+
+    protected function formatBytes(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+
+        for ($i = 0; $bytes > 1024; $i++) {
+            $bytes /= 1024;
+        }
+
+        return round($bytes, 2).' '.$units[$i];
     }
 }
