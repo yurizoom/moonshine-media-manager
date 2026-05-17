@@ -73,6 +73,19 @@
                                 </x-moonshine::link-button>
                             @endif
 
+                            @foreach($mmFileActions as $actionName => $action)
+                                <x-moonshine::link-button
+                                    x-show="{{ $action['x-show'] ?? 'true' }}"
+                                    @click.prevent="{{ $action['click'] }}"
+                                    class="btn-sm {{ $action['class'] ?? '' }}"
+                                    title="{{ $action['label'] ?? $actionName }}"
+                                >
+                                    @if(!empty($action['icon']))
+                                        <x-moonshine::icon icon="{{ $action['icon'] }}"/>
+                                    @endif
+                                </x-moonshine::link-button>
+                            @endforeach
+
                             <x-moonshine::link-button
                                 @click.prevent="openRenameModal(file)"
                                 class="btn-sm btn-primary"

@@ -12,7 +12,7 @@
         @include('moonshine-media-manager::partials.browser-toolbar')
 
         {{-- Selected files bar --}}
-        <div x-show="$store.mm.hasSelection && !loading" x-cloak class="mb-4">
+        <div x-show="$store.mm.hasSelection" x-cloak class="mb-4">
             <div class="text-sm font-medium mb-2 text-gray-500">{{ __('moonshine-media-manager::media-manager.selected_files') }}</div>
             <div class="mm-selected-bar">
                 <template x-for="(file, idx) in $store.mm.selected" :key="file.path">
@@ -24,7 +24,7 @@
                          @drop="dropSelectedTo(idx)"
                          @dragend="dragSelectedEnd()"
                     >
-                        <div class="mm-selected-actions">
+                        <div class="mm-selected-actions" @mousedown.stop @click.stop @dragstart.stop>
                             <button type="button"
                                     @click.prevent="navigateToFile(file.path)"
                                     class="mm-selected-btn mm-selected-btn--navigate"
