@@ -11,6 +11,19 @@
 | 3.0+      | 2.x   | |
 | 2.0+      | 1.x   | |
 
+## Скриншоты
+
+<table>
+    <tr>
+        <td align="center"><b>Менеджер</b></td>
+        <td align="center"><b>Пикер</b></td>
+    </tr>
+    <tr>
+        <td><img src="blob/manager.jpg" alt="Media Manager" width="400"/></td>
+        <td><img src="blob/picker.jpg" alt="Media Manager Picker" width="400"/></td>
+    </tr>
+</table>
+
 ## Установка
 
 ```bash

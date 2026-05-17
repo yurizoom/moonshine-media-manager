@@ -19,6 +19,11 @@
     --mm-color-gray-700: #888;
 }
 
+.mm-toolbar .btn {
+    min-height: 39px;
+    --ms-btn-icon-size: 1.2rem;
+}
+
 /* -- Selected files bar -- */
 .mm-selected-bar {
     display: flex;
