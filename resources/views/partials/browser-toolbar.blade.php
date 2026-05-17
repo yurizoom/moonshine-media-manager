@@ -2,7 +2,7 @@
     'showLabels' => false,
 ])
 
-<div class="flex items-center justify-between gap-3 flex-wrap mb-4">
+<div class="mm-toolbar flex items-center justify-between gap-3 flex-wrap mb-4">
     <div class="flex items-center gap-2">
         <x-moonshine::link-button
             @click.prevent="refresh()"
