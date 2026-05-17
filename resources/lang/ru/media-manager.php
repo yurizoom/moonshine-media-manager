@@ -31,6 +31,10 @@ return [
         'file_extension_not_allowed' => "Расширение файла :ext не разрешено",
         'only_local_storage' => "Расширение работает только для локального хранилища",
         'file_not_exists' => "Файл не найден",
+        'mime_type_mismatch' => "Несоответствие MIME-типа для :ext (получен :mime)",
+        'file_too_large' => "Файл превышает максимальный размер :max",
+        'path_not_allowed' => "Доступ к этому пути запрещён",
+        'operation_failed' => "Операция не удалась. Попробуйте снова.",
     ],
     'tooltip' => [
         'refresh' => 'Обновить',
