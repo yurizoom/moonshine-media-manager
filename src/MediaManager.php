@@ -17,20 +17,13 @@ use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileUploaded;
 use YuriZoom\MoonShineMediaManager\Helpers\URLGenerator;
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 
-/**
- * Class MediaManager.
- */
 class MediaManager
 {
     protected string $path = '/';
 
     protected Filesystem $storage;
 
-    /**
-     * List of allowed extensions.
-     *
-     * @var string[]
-     */
+    /** @var string[] */
     protected array $allowed = [];
 
     protected array $fileTypes = [
@@ -45,12 +38,9 @@ class MediaManager
         'video' => 'mkv|rmvb|flv|mp4|avi|wmv|rm|asf|mpeg',
     ];
 
-    /**
-     * MediaManager constructor.
-     */
     public function __construct(string $path = '/')
     {
-        $this->path = $path;
+        $this->path = URLGenerator::sanitizePath($path);
 
         if (! empty(config('moonshine.media_manager.allowed_ext'))) {
             $this->allowed = explode(',', config('moonshine.media_manager.allowed_ext'));
@@ -102,24 +92,31 @@ class MediaManager
     public function delete($path): bool
     {
         $paths = is_array($path) ? $path : func_get_args();
+        $deleted = false;
 
-        foreach ($paths as $path) {
-            if ($this->storage->fileExists($path)) {
-                $this->storage->delete($path);
+        foreach ($paths as $rawPath) {
+            $safePath = URLGenerator::sanitizePath($rawPath);
+
+            if ($this->storage->fileExists($safePath)) {
+                $this->storage->delete($safePath);
+                $deleted = true;
                 if (class_exists(MediaManagerFileDeleted::class)) {
-                    MediaManagerFileDeleted::dispatch($path, $this->getDisk());
+                    MediaManagerFileDeleted::dispatch($safePath, $this->getDisk());
                 }
-            } else {
-                $this->storage->deleteDirectory($path);
+            } elseif ($this->storage->directoryExists($safePath)) {
+                $this->storage->deleteDirectory($safePath);
+                $deleted = true;
             }
         }
 
-        return true;
+        return $deleted;
     }
 
-    public function move($new): bool
+    public function move(string $new): bool
     {
-        return $this->storage->move($this->path, $new);
+        $safeNew = URLGenerator::sanitizePath($new);
+
+        return $this->storage->move($this->path, $safeNew);
     }
 
     /**
@@ -134,8 +131,9 @@ class MediaManager
                 );
             }
 
-            $path = rtrim($this->path, '/').'/'.$file->getClientOriginalName();
-            $this->storage->putFileAs($this->path, $file, $file->getClientOriginalName());
+            $safeName = URLGenerator::sanitizeFileName($file->getClientOriginalName());
+            $path = rtrim($this->path, '/').'/'.$safeName;
+            $this->storage->putFileAs($this->path, $file, $safeName);
             if (class_exists(MediaManagerFileUploaded::class)) {
                 MediaManagerFileUploaded::dispatch($path, $this->getDisk());
             }
@@ -144,9 +142,10 @@ class MediaManager
         return true;
     }
 
-    public function newFolder($name): bool
+    public function newFolder(string $name): bool
     {
-        $path = rtrim($this->path, '/').'/'.trim($name, '/');
+        $safeName = URLGenerator::sanitizeFileName($name);
+        $path = rtrim($this->path, '/').'/'.$safeName;
 
         return $this->storage->makeDirectory($path);
     }
@@ -179,7 +178,6 @@ class MediaManager
         $files = array_map(function ($file) {
             return [
                 'download' => route('moonshine.media.manager.download', compact('file')),
-                'icon' => '',
                 'path' => $file,
                 'preview' => $this->getFilePreview($file),
                 'type' => $this->detectFileType($file),
@@ -198,14 +196,11 @@ class MediaManager
     {
         $url = $this->indexUrl(['path' => '__path__', 'view' => request('view')]);
 
-        $preview = "<a href=\"$url\"><span class=\"file-icon text-aqua\"><i class=\"fa fa-folder\"></i></span></a>";
-
-        $dirs = array_map(function ($dir) use ($preview) {
+        $dirs = array_map(function ($dir) use ($url) {
             return [
                 'download' => '',
-                'icon' => '',
                 'path' => $dir,
-                'preview' => str_replace('__path__', $dir, $preview),
+                'preview' => '',
                 'isDir' => true,
                 'size' => '',
                 'link' => $this->indexUrl(['path' => '/'.trim($dir, '/'), 'view' => request('view')]),
@@ -238,14 +233,16 @@ class MediaManager
         return $navigation;
     }
 
-    public function getFilePreview($file): string
+    public function getFilePreview(string $file): string
     {
-        return ($this->detectFileType($file) == 'image')
-            ? '<img src="'.$this->storage->url($file).'" alt="Attachment"/>'
-            : '';
+        if ($this->detectFileType($file) !== 'image') {
+            return '';
+        }
+
+        return '<img src="'.e($this->storage->url($file)).'" alt="Attachment"/>';
     }
 
-    protected function detectFileType($file): bool|string
+    protected function detectFileType(string $file): bool|string
     {
         $extension = File::extension($file);
 
@@ -258,9 +255,13 @@ class MediaManager
         return false;
     }
 
-    public function getFilesize($file): string
+    public function getFilesize(string $file): string
     {
-        $bytes = $this->storage->size($file);
+        try {
+            $bytes = $this->storage->size($file);
+        } catch (\Throwable) {
+            return '—';
+        }
 
         $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
 
@@ -271,9 +272,13 @@ class MediaManager
         return round($bytes, 2).' '.$units[$i];
     }
 
-    public function getFileChangeTime($file): string
+    public function getFileChangeTime(string $file): string
     {
-        $time = $this->storage->lastModified($file);
+        try {
+            $time = $this->storage->lastModified($file);
+        } catch (\Throwable) {
+            return '—';
+        }
 
         return date('Y-m-d H:i:s', $time);
     }
