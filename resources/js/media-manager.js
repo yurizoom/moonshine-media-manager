@@ -8,6 +8,41 @@
  *
  * Communication: Picker → Store.open() → Browser → Store.confirm() → Picker callback
  */
+
+// =========================================================================
+// Shared utilities
+// =========================================================================
+
+/** @param {string} url @returns {boolean} */
+function mmIsImageUrl(url) {
+    return /\.(jpe?g|png|gif|webp|avif|bmp|svg|ico)(\?.*)?$/i.test(url || '');
+}
+
+/**
+ * HEAD-check a single URL with AbortController support and caching.
+ * @param {string} url
+ * @param {Object<string,boolean>} cache  path → exists
+ * @param {string} path  cache key
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<boolean>}
+ */
+async function mmCheckUrlExists(url, cache, path, signal) {
+    if (path in cache) {
+        return cache[path];
+    }
+
+    try {
+        const resp = await fetch(url, { method: 'HEAD', cache: 'no-store', signal });
+        const exists = resp.ok;
+        cache[path] = exists;
+        return exists;
+    } catch {
+        if (signal?.aborted) return false;
+        cache[path] = false;
+        return false;
+    }
+}
+
 document.addEventListener('alpine:init', () => {
 
     // =========================================================================
@@ -31,6 +66,9 @@ document.addEventListener('alpine:init', () => {
 
         /** @type {Function|null} */
         _callback: null,
+
+        /** Cache: path → true (exists). Invalidated on refresh. */
+        _existsCache: {},
 
         /**
          * Open the media manager.
@@ -122,6 +160,17 @@ document.addEventListener('alpine:init', () => {
             const item = this.selected.splice(fromIdx, 1)[0];
             this.selected.splice(toIdx, 0, item);
         },
+
+        /** Invalidate the exists-check cache (call after upload/delete/move). */
+        invalidateExistsCache(...paths) {
+            if (paths.length === 0) {
+                this._existsCache = {};
+            } else {
+                for (const p of paths) {
+                    delete this._existsCache[p];
+                }
+            }
+        },
     });
 
     // =========================================================================
@@ -154,8 +203,17 @@ document.addEventListener('alpine:init', () => {
         /** @type {number|null} Timeout ID for highlightPath auto-clear */
         _highlightTimeout: null,
 
+        /** @type {number|null} Timeout ID for scrollToHighlighted after loadFiles */
+        _scrollTimeout: null,
+
         /** @type {AbortController|null} For cancelling stale loadFiles requests */
         _loadAbort: null,
+
+        /** @type {AbortController|null} For cancelling stale checkSelectedExist requests */
+        _checkAbort: null,
+
+        /** @type {number|null} Debounce timer for checkSelectedExist */
+        _checkTimer: null,
 
         /** @type {string[]} Paths of selected files that are broken (404) */
         brokenSelectedPaths: [],
@@ -170,7 +228,9 @@ document.addEventListener('alpine:init', () => {
         init() {
             this.$nextTick(() => this.loadFiles('/'));
 
-            window.addEventListener('mm:refresh', () => this.refresh());
+            const refreshHandler = () => this.refresh();
+            window.addEventListener('mm:refresh', refreshHandler);
+            this.$cleanup?.(() => window.removeEventListener('mm:refresh', refreshHandler));
 
             this.$watch('$store.mm.isOpen', (open) => {
                 if (open) {
@@ -178,14 +238,28 @@ document.addEventListener('alpine:init', () => {
                     this.brokenSelectedPaths = [];
                     this.$nextTick(() => {
                         this.loadFiles('/');
-                        this.checkSelectedExist();
+                        this._debouncedCheckSelected();
                     });
                 }
             });
 
             this.$watch('$store.mm.selected.length', () => {
-                this.$nextTick(() => this.checkSelectedExist());
+                this._debouncedCheckSelected();
             });
+        },
+
+        /**
+         * Debounced wrapper around checkSelectedExist.
+         * Waits 300ms before executing; cancels previous pending check.
+         */
+        _debouncedCheckSelected() {
+            if (this._checkTimer) {
+                clearTimeout(this._checkTimer);
+            }
+            this._checkTimer = setTimeout(() => {
+                this._checkTimer = null;
+                this.checkSelectedExist();
+            }, 300);
         },
 
         /** @returns {string} */
@@ -212,6 +286,11 @@ document.addEventListener('alpine:init', () => {
                 this._loadAbort.abort();
             }
             this._loadAbort = new AbortController();
+
+            if (this._scrollTimeout) {
+                clearTimeout(this._scrollTimeout);
+                this._scrollTimeout = null;
+            }
 
             this.loading = true;
             path = path || '/';
@@ -255,7 +334,10 @@ document.addEventListener('alpine:init', () => {
 
             if (this.highlightPath) {
                 this.$nextTick(() => {
-                    setTimeout(() => this.scrollToHighlighted(), 150);
+                    this._scrollTimeout = setTimeout(() => {
+                        this._scrollTimeout = null;
+                        this.scrollToHighlighted();
+                    }, 150);
                 });
             }
         },
@@ -371,27 +453,35 @@ document.addEventListener('alpine:init', () => {
             return path.split('/').filter(Boolean).pop() || path;
         },
 
-        isImageUrl(url) {
-            return /\.(jpe?g|png|gif|webp|avif|bmp|svg|ico)$/i.test(url || '');
-        },
+        isImageUrl: mmIsImageUrl,
 
+        /**
+         * Check which selected files are broken (404).
+         * Uses debounce, AbortController, and a shared cache to avoid redundant HEAD requests.
+         */
         async checkSelectedExist() {
+            if (this._checkAbort) {
+                this._checkAbort.abort();
+            }
+            this._checkAbort = new AbortController();
+            const signal = this._checkAbort.signal;
+
             const store = Alpine.store('mm');
+            const cache = store._existsCache;
             const selectedPaths = store.selected.map(f => f.path);
 
             this.brokenSelectedPaths = this.brokenSelectedPaths.filter(p => selectedPaths.includes(p));
 
             const checks = store.selected.map(async (file) => {
-                if (this.brokenSelectedPaths.includes(file.path)) {
-                    return;
-                }
+                if (signal.aborted) return;
+                if (this.brokenSelectedPaths.includes(file.path)) return;
+                if (cache[file.path] === true) return;
 
-                try {
-                    const resp = await fetch(file.url, { method: 'HEAD', cache: 'no-store' });
-                    if (!resp.ok) {
-                        this.brokenSelectedPaths.push(file.path);
-                    }
-                } catch {
+                const exists = await mmCheckUrlExists(file.url, cache, file.path, signal);
+
+                if (signal.aborted) return;
+
+                if (!exists && !this.brokenSelectedPaths.includes(file.path)) {
                     this.brokenSelectedPaths.push(file.path);
                 }
             });
@@ -489,6 +579,7 @@ document.addEventListener('alpine:init', () => {
                 const data = await response.json();
 
                 if (data.status) {
+                    Alpine.store('mm').invalidateExistsCache(...this.deleteFiles);
                     this.toast(data.message || 'Deleted', 'success');
                     window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');
                     this.deleteFiles = [];
@@ -523,6 +614,7 @@ document.addEventListener('alpine:init', () => {
                 const data = await response.json();
 
                 if (data.status) {
+                    Alpine.store('mm').invalidateExistsCache(this.renamePath, this.renameNew);
                     this.toast(data.message || 'Renamed', 'success');
                     window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'rename');
                     this.refresh();
@@ -592,8 +684,27 @@ document.addEventListener('alpine:init', () => {
 
         singleBroken: false,
 
+        /** @type {AbortController|null} */
+        _checkAbort: null,
+
+        /** @type {number|null} */
+        _checkTimer: null,
+
         init() {
-            this.$nextTick(() => this.checkFilesExist());
+            this.$nextTick(() => this._debouncedCheckFiles());
+
+            this.$cleanup?.(() => {
+                if (this._checkTimer) clearTimeout(this._checkTimer);
+                if (this._checkAbort) this._checkAbort.abort();
+            });
+        },
+
+        _debouncedCheckFiles() {
+            if (this._checkTimer) clearTimeout(this._checkTimer);
+            this._checkTimer = setTimeout(() => {
+                this._checkTimer = null;
+                this.checkFilesExist();
+            }, 200);
         },
 
         async checkFilesExist() {
@@ -602,18 +713,25 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            const checks = list.map(async (p, idx) => {
-                const url = this.multiple ? this.baseUrl + '/' + p : this.previewUrl;
-                if (!url) {
-                    return;
-                }
+            if (this._checkAbort) this._checkAbort.abort();
+            this._checkAbort = new AbortController();
+            const signal = this._checkAbort.signal;
 
-                try {
-                    const resp = await fetch(url, { method: 'HEAD', cache: 'no-store' });
-                    if (!resp.ok) {
-                        this.markBroken(idx);
-                    }
-                } catch {
+            const cache = Alpine.store('mm')._existsCache;
+
+            const checks = list.map(async (p, idx) => {
+                if (signal.aborted) return;
+
+                const url = this.multiple ? this.baseUrl + '/' + p : this.previewUrl;
+                if (!url) return;
+
+                if (cache[p] === true) return;
+
+                const exists = await mmCheckUrlExists(url, cache, p, signal);
+
+                if (signal.aborted) return;
+
+                if (!exists) {
                     this.markBroken(idx);
                 }
             });
@@ -756,15 +874,7 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        /**
-         * Check if a URL points to an image file.
-         * @param {string} url
-         * @returns {boolean}
-         */
-        isImageUrl(url) {
-            if (!url) return false;
-            return /\.(jpe?g|png|gif|webp|avif|bmp|svg|ico)(\?.*)?$/i.test(url);
-        },
+        isImageUrl: mmIsImageUrl,
 
         /**
          * Get file extension from a path.
