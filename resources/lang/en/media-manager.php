@@ -31,6 +31,10 @@ return [
         'file_extension_not_allowed' => "File extension :ext is not allowed",
         'only_local_storage' => "Media manager extension only works for local storage",
         'file_not_exists' => "File not found",
+        'mime_type_mismatch' => "MIME type mismatch for :ext (got :mime)",
+        'file_too_large' => "File exceeds maximum size of :max",
+        'path_not_allowed' => "Access to this path is not allowed",
+        'operation_failed' => "Operation failed. Please try again.",
     ],
     'tooltip' => [
         'refresh' => 'Refresh',
