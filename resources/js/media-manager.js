@@ -151,6 +151,12 @@ document.addEventListener('alpine:init', () => {
         /** @type {string} Path of file to highlight after loading (set by navigateToFile) */
         highlightPath: '',
 
+        /** @type {number|null} Timeout ID for highlightPath auto-clear */
+        _highlightTimeout: null,
+
+        /** @type {AbortController|null} For cancelling stale loadFiles requests */
+        _loadAbort: null,
+
         /** @type {string[]} Paths of selected files that are broken (404) */
         brokenSelectedPaths: [],
 
@@ -163,6 +169,8 @@ document.addEventListener('alpine:init', () => {
 
         init() {
             this.$nextTick(() => this.loadFiles('/'));
+
+            window.addEventListener('mm:refresh', () => this.refresh());
 
             this.$watch('$store.mm.isOpen', (open) => {
                 if (open) {
@@ -200,6 +208,11 @@ document.addEventListener('alpine:init', () => {
          * @param {string|null} view
          */
         async loadFiles(path = '/', view = null) {
+            if (this._loadAbort) {
+                this._loadAbort.abort();
+            }
+            this._loadAbort = new AbortController();
+
             this.loading = true;
             path = path || '/';
             view = view || this.view;
@@ -217,6 +230,7 @@ document.addEventListener('alpine:init', () => {
 
                 const response = await fetch(this.urls.index + '?' + params.toString(), {
                     headers: this.ajaxHeaders,
+                    signal: this._loadAbort.signal,
                 });
                 const data = await response.json();
 
@@ -231,13 +245,18 @@ document.addEventListener('alpine:init', () => {
                     this.toast(data.message || 'Error', 'error');
                 }
             } catch (e) {
+                if (e.name === 'AbortError') {
+                    return;
+                }
                 this.toast(e.message || 'Request failed', 'error');
             }
 
             this.loading = false;
 
             if (this.highlightPath) {
-                setTimeout(() => this.scrollToHighlighted(), 150);
+                this.$nextTick(() => {
+                    setTimeout(() => this.scrollToHighlighted(), 150);
+                });
             }
         },
 
@@ -289,6 +308,10 @@ document.addEventListener('alpine:init', () => {
         },
 
         navigateToFile(filePath) {
+            if (this._highlightTimeout) {
+                clearTimeout(this._highlightTimeout);
+                this._highlightTimeout = null;
+            }
             this.highlightPath = filePath;
             const parts = filePath.split('/');
             parts.pop();
@@ -310,8 +333,12 @@ document.addEventListener('alpine:init', () => {
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
 
-            setTimeout(() => {
+            if (this._highlightTimeout) {
+                clearTimeout(this._highlightTimeout);
+            }
+            this._highlightTimeout = setTimeout(() => {
                 this.highlightPath = '';
+                this._highlightTimeout = null;
             }, 3000);
         },
 

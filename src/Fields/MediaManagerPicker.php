@@ -80,12 +80,12 @@ class MediaManagerPicker extends Field
 
         if ($this->isMultiple) {
             $paths = is_array($value) ? $value : json_decode((string) $value, true) ?? [];
-            $urls = array_map(static fn (string $p): string => $baseUrl . '/' . $p, $paths);
+            $urls = array_map(static fn (string $p): string => $baseUrl.'/'.$p, $paths);
 
             return Thumbnails::make($urls)->render();
         }
 
-        return Thumbnails::make($baseUrl . '/' . $value)->render();
+        return Thumbnails::make($baseUrl.'/'.$value)->render();
     }
 
     protected function resolveRawValue(): mixed

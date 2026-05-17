@@ -47,6 +47,21 @@
         >
             <x-moonshine::icon icon="squares-2x2" x-bind:class="view === 'list' ? 'text-primary' : ''"/>
         </x-moonshine::link-button>
+
+        @foreach($mmToolbarActions as $actionName => $action)
+            <x-moonshine::link-button
+                @click.prevent="{{ $action['click'] }}"
+                class="{{ $action['class'] ?? '' }}"
+                title="{{ $action['label'] ?? $actionName }}"
+            >
+                @if(!empty($action['icon']))
+                    <x-moonshine::icon icon="{{ $action['icon'] }}"/>
+                @endif
+                @if(!empty($action['showLabel']) || ($showLabels && !empty($action['label'])))
+                    {{ $action['label'] }}
+                @endif
+            </x-moonshine::link-button>
+        @endforeach
     </div>
 
     <div class="flex">
