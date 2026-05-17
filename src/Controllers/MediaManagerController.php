@@ -6,12 +6,25 @@ namespace YuriZoom\MoonShineMediaManager\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Gate;
 use MoonShine\Contracts\Core\DependencyInjection\CrudRequestContract as MoonShineRequest;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use YuriZoom\MoonShineMediaManager\MediaManager;
 
 class MediaManagerController extends Controller
 {
+    public function __construct()
+    {
+        $gate = config('moonshine.media_manager.gate');
+
+        if ($gate) {
+            $this->middleware(fn ($request, $next) => (
+                Gate::authorize($gate)->allowed() ? $next($request) : abort(403)
+            ));
+        }
+    }
+
     public function index(MoonShineRequest $request): JsonResponse
     {
         $path = $request->get('path', '/');
@@ -63,11 +76,10 @@ class MediaManagerController extends Controller
 
         try {
             return $manager->download();
+        } catch (RuntimeException $e) {
+            return $this->errorResponse($e);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ]);
+            return $this->errorResponse($e);
         }
     }
 
@@ -80,11 +92,10 @@ class MediaManagerController extends Controller
 
         try {
             $result = $manager->upload($files);
+        } catch (RuntimeException $e) {
+            return $this->errorResponse($e);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ]);
+            return $this->errorResponse($e);
         }
 
         if (! $result) {
@@ -108,11 +119,10 @@ class MediaManagerController extends Controller
 
         try {
             $manager->delete($files);
+        } catch (RuntimeException $e) {
+            return $this->errorResponse($e);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ]);
+            return $this->errorResponse($e);
         }
 
         return response()->json([
@@ -130,11 +140,10 @@ class MediaManagerController extends Controller
 
         try {
             $manager->move($new);
+        } catch (RuntimeException $e) {
+            return $this->errorResponse($e);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ]);
+            return $this->errorResponse($e);
         }
 
         return response()->json([
@@ -152,16 +161,32 @@ class MediaManagerController extends Controller
 
         try {
             $manager->newFolder($name);
+        } catch (RuntimeException $e) {
+            return $this->errorResponse($e);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ]);
+            return $this->errorResponse($e);
         }
 
         return response()->json([
             'status' => true,
             'message' => __('moonshine-media-manager::media-manager.folder_created_successfully'),
         ]);
+    }
+
+    private function errorResponse(\Throwable $e, int $status = 400): JsonResponse
+    {
+        if ($e instanceof RuntimeException) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], $status);
+        }
+
+        report($e);
+
+        return response()->json([
+            'status' => false,
+            'message' => __('moonshine-media-manager::media-manager.error.operation_failed'),
+        ], $status);
     }
 }

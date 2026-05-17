@@ -68,11 +68,42 @@ class URLGenerator
         return '/' . implode('/', $safe);
     }
 
+    /**
+     * Dangerous extensions that should never appear in any segment of the filename,
+     * even before the final extension (e.g. "shell.php.jpg").
+     *
+     * @var string[]
+     */
+    private const DANGEROUS_EXTENSIONS = [
+        'php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'pht', 'phar',
+        'htaccess', 'htpasswd',
+    ];
+
     public static function sanitizeFileName(string $name): string
     {
         $name = basename($name);
+
+        // Strip leading dots to prevent hidden/config files (.htaccess, .env, etc.)
+        $name = ltrim($name, '.');
+
+        // Remove everything except alphanumeric, dots, underscores, hyphens, spaces
         $name = preg_replace('/[^a-zA-Z0-9._\-\s]/', '', $name);
+
+        // Collapse whitespace to single hyphens
         $name = preg_replace('/\s+/', '-', $name);
+
+        // Collapse consecutive dots to a single dot
+        $name = preg_replace('/\.{2,}/', '.', $name);
+
+        // Block dangerous extensions anywhere in the filename
+        $segments = explode('.', strtolower($name));
+        foreach ($segments as $segment) {
+            if (in_array($segment, self::DANGEROUS_EXTENSIONS, true)) {
+                throw new \RuntimeException(
+                    __('moonshine-media-manager::media-manager.error.file_extension_not_allowed', ['ext' => $segment])
+                );
+            }
+        }
 
         return $name ?: 'file';
     }

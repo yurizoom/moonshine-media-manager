@@ -39,7 +39,7 @@ final class MediaManagerRegistry implements MediaManagerRegistryInterface
      */
     public function addFileAction(string $name, array $definition): self
     {
-        $this->fileActions[$name] = $definition;
+        $this->fileActions[$name] = $this->validateAction($definition, ['click']);
 
         return $this;
     }
@@ -59,7 +59,7 @@ final class MediaManagerRegistry implements MediaManagerRegistryInterface
      */
     public function addToolbarAction(string $name, array $definition): self
     {
-        $this->toolbarActions[$name] = $definition;
+        $this->toolbarActions[$name] = $this->validateAction($definition, ['click']);
 
         return $this;
     }
@@ -118,5 +118,26 @@ final class MediaManagerRegistry implements MediaManagerRegistryInterface
     public function hasToolbarActions(): bool
     {
         return $this->toolbarActions !== [];
+    }
+
+    private function validateAction(array $definition, array $requiredKeys): array
+    {
+        foreach ($requiredKeys as $key) {
+            if (! isset($definition[$key]) || ! is_string($definition[$key])) {
+                throw new \InvalidArgumentException(
+                    "MediaManager action must have a string \"{$key}\" key."
+                );
+            }
+        }
+
+        if (isset($definition['click']) && preg_match('/<\s*script|javascript:|on\w+\s*=/i', $definition['click'])) {
+            throw new \InvalidArgumentException('MediaManager action "click" contains disallowed content.');
+        }
+
+        if (isset($definition['x-show']) && preg_match('/<\s*script|javascript:|on\w+\s*=/i', $definition['x-show'])) {
+            throw new \InvalidArgumentException('MediaManager action "x-show" contains disallowed content.');
+        }
+
+        return $definition;
     }
 }
