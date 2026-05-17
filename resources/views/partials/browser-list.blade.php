@@ -76,6 +76,18 @@
                                     {{ __('moonshine-media-manager::media-manager.url') }}
                                 </x-moonshine::link-button>
                             @endif
+                            @foreach($mmFileActions as $actionName => $action)
+                                <x-moonshine::link-button
+                                        x-show="{{ $action['x-show'] ?? 'true' }}"
+                                        @click.stop.prevent="{{ $action['click'] }}"
+                                        class="mm-list-dropdown-btn"
+                                >
+                                    @if(!empty($action['icon']))
+                                        <x-moonshine::icon icon="{{ $action['icon'] }}" class="mm-list-dropdown-icon"/>
+                                    @endif
+                                    {{ $action['label'] ?? $actionName }}
+                                </x-moonshine::link-button>
+                            @endforeach
                             <x-moonshine::link-button
                                     @click.stop.prevent="openRenameModal(file)"
                                     class="mm-list-dropdown-btn"
