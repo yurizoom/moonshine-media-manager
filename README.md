@@ -56,26 +56,15 @@ php artisan vendor:publish --tag=moonshine-media-manager-assets
 ],
 ```
 
-### Подключение OffCanvas, JS и CSS
+### Подключение OffCanvas
 
 В `app/MoonShine/Layouts/MoonShineLayout.php`:
 
 ```php
-use MoonShine\AssetManager\Css;
-use MoonShine\AssetManager\Js;
 use YuriZoom\MoonShineMediaManager\Components\MediaManagerOffCanvas;
 
 final class MoonShineLayout extends AppLayout
 {
-    protected function assets(): array
-    {
-        return [
-            ...parent::assets(),
-            Js::make('/vendor/media-manager/media-manager.js'),
-            Css::make('/vendor/media-manager/media-manager.css'),
-        ];
-    }
-
     protected function getContentComponents(): array
     {
         return [
@@ -86,7 +75,7 @@ final class MoonShineLayout extends AppLayout
 }
 ```
 
-`MediaManagerOffCanvas` — глобальный компонент, рендерит offcanvas-панель с файловым менеджером. Именно через неё работают все picker-поля на страницах.
+`MediaManagerOffCanvas` — глобальный компонент, рендерит offcanvas-панель с файловым менеджером. Именно через неё работают все picker-поля на страницах. Assets загружаются автоматически через компонент.
 
 ### Добавление в меню (опционально)
 
