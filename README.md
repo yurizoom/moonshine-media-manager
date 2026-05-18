@@ -36,10 +36,10 @@ composer require yurizoom/moonshine-media-manager
 
 Полностью AJAX — загрузка, удаление, переименование, навигация по папкам без перезагрузки страницы.
 
-После установки опубликуйте JS-ассет:
+После установки опубликуйте ассеты:
 
 ```bash
-php artisan vendor:publish --tag=media-manager-assets
+php artisan vendor:publish --tag=moonshine-media-manager-assets
 ```
 
 ### Конфигурация
@@ -53,30 +53,18 @@ php artisan vendor:publish --tag=media-manager-assets
     'allowed_ext' => 'jpg,jpeg,png,gif,webp,avif,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,txt,mp3,mp4,wav,avi,mov',
     'max_file_size' => env('MOONSHINE_MEDIA_MANAGER_MAX_FILE_SIZE', 50 * 1024 * 1024),
     'default_view' => 'table',
-    'gate' => env('MOONSHINE_MEDIA_MANAGER_GATE'),
 ],
 ```
 
-### Подключение OffCanvas, JS и CSS
+### Подключение OffCanvas
 
 В `app/MoonShine/Layouts/MoonShineLayout.php`:
 
 ```php
-use MoonShine\AssetManager\Css;
-use MoonShine\AssetManager\Js;
 use YuriZoom\MoonShineMediaManager\Components\MediaManagerOffCanvas;
 
 final class MoonShineLayout extends AppLayout
 {
-    protected function assets(): array
-    {
-        return [
-            ...parent::assets(),
-            Js::make('/vendor/media-manager/media-manager.js'),
-            Css::make('/vendor/media-manager/media-manager.css'),
-        ];
-    }
-
     protected function getContentComponents(): array
     {
         return [
@@ -87,7 +75,7 @@ final class MoonShineLayout extends AppLayout
 }
 ```
 
-`MediaManagerOffCanvas` — глобальный компонент, рендерит offcanvas-панель с файловым менеджером. Именно через неё работают все picker-поля на страницах.
+`MediaManagerOffCanvas` — глобальный компонент, рендерит offcanvas-панель с файловым менеджером. Именно через неё работают все picker-поля на страницах. Assets загружаются автоматически через компонент.
 
 ### Добавление в меню (опционально)
 
@@ -197,26 +185,9 @@ Layouts::make('Контент', 'content')
 |----------|-------------|----------|
 | `auto_menu` | `true` | Автоматически добавить в боковое меню |
 | `disk` | `public` | Диск файлового хранилища (только локальный) |
-| `allowed_ext` | `jpg,jpeg,png,...` | Разрешённые для загрузки расширения (проверка по MIME + расширению) |
+| `allowed_ext` | `jpg,jpeg,png,gif,...` | Разрешённые для загрузки расширения (проверка по MIME + расширению) |
 | `max_file_size` | `10485760` (10 MB) | Максимальный размер загружаемого файла в байтах |
 | `default_view` | `table` | Вид по умолчанию: `table` или `list` |
-| `gate` | `null` | Название Gate для ограничения доступа (см. ниже) |
-
-### Ограничение доступа (Gate)
-
-По умолчанию доступ есть у всех авторизованных пользователей MoonShine. Чтобы ограничить — добавьте в `.env`:
-
-```env
-MOONSHINE_MEDIA_MANAGER_GATE=media-manager
-```
-
-И зарегистрируйте Gate в `App\Providers\AuthServiceProvider`:
-
-```php
-use Illuminate\Support\Facades\Gate;
-
-Gate::define('media-manager', fn ($user) => $user->isSuperUser());
-```
 
 ---
 
@@ -294,7 +265,7 @@ npm run build
 Готовые файлы появятся в `dist/`. Для публикации в проекте:
 
 ```bash
-php artisan vendor:publish --tag=media-manager-assets --force
+php artisan vendor:publish --tag=moonshine-media-manager-assets --force
 ```
 
 ---
