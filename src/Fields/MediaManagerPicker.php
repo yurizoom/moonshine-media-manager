@@ -8,6 +8,7 @@ use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Facades\Storage;
 use MoonShine\UI\Components\Thumbnails;
 use MoonShine\UI\Fields\Field;
+use YuriZoom\MoonShineMediaManager\Support\MediaAssets;
 
 class MediaManagerPicker extends Field
 {
@@ -102,5 +103,10 @@ class MediaManagerPicker extends Field
         } catch (\Throwable) {
             return url('/storage');
         }
+    }
+
+    protected function assets(): array
+    {
+        return MediaAssets::get();
     }
 }

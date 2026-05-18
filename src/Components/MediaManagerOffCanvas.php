@@ -6,13 +6,11 @@ namespace YuriZoom\MoonShineMediaManager\Components;
 
 use MoonShine\UI\Components\MoonShineComponent;
 use YuriZoom\MoonShineMediaManager\MediaManager;
+use YuriZoom\MoonShineMediaManager\Support\MediaAssets;
 
 final class MediaManagerOffCanvas extends MoonShineComponent
 {
-    public function getView(): string
-    {
-        return 'moonshine-media-manager::components.media-manager-offcanvas';
-    }
+    protected string $view = 'moonshine-media-manager::components.media-manager-offcanvas';
 
     protected function viewData(): array
     {
@@ -21,5 +19,10 @@ final class MediaManagerOffCanvas extends MoonShineComponent
         return [
             'urls' => $manager->urls(),
         ];
+    }
+
+    protected function assets(): array
+    {
+        return MediaAssets::get();
     }
 }
