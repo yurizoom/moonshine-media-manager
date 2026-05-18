@@ -7,11 +7,10 @@ namespace YuriZoom\MoonShineMediaManager\Pages;
 use MoonShine\Laravel\Pages\Page;
 use MoonShine\UI\Components\FlexibleRender;
 use MoonShine\UI\Components\Layout\Box;
-use Symfony\Component\Routing\Attribute\Route;
 use YuriZoom\MoonShineMediaManager\MediaManager;
+use YuriZoom\MoonShineMediaManager\Support\MediaAssets;
 
-#[Route('media')]
-class MediaManagerPage extends Page
+final class MediaManagerPage extends Page
 {
     public function getTitle(): string
     {
@@ -25,7 +24,7 @@ class MediaManagerPage extends Page
         ];
     }
 
-    public function components(): array
+    public function components(): iterable
     {
         $manager = new MediaManager('/');
 
@@ -38,5 +37,10 @@ class MediaManagerPage extends Page
                 ),
             ]),
         ];
+    }
+
+    protected function assets(): array
+    {
+        return MediaAssets::get();
     }
 }
