@@ -7,9 +7,20 @@
     title="{{ __('moonshine-media-manager::media-manager.title') }}"
     :wide="true"
 >
-    <div x-data="mmBrowser({{ Js::from($urls) }})">
+    <div x-data="mmBrowser({{ Js::from($urls) }})" x-ref="mmRoot">
 
         @include('moonshine-media-manager::partials.browser-toolbar')
+
+        {{-- Scroll to top button --}}
+        <button type="button"
+                x-show="mmScrolled"
+                x-transition
+                @click.prevent="$el.closest('.offcanvas-body')?.scrollTo({top:0,behavior:'smooth'})"
+                class="mm-scroll-top-btn"
+                title="{{ __('moonshine-media-manager::media-manager.scroll_to_top') }}"
+        >
+            <x-moonshine::icon icon="chevron-up"/>
+        </button>
 
         {{-- Selected files bar --}}
         <div x-show="$store.mm.hasSelection" x-cloak class="mb-4">
@@ -81,7 +92,7 @@
 
         @include('moonshine-media-manager::partials.browser-loading')
 
-        @include('moonshine-media-manager::partials.browser-table', ['showCheckboxes' => true])
+        @include('moonshine-media-manager::partials.browser-table', ['showCheckboxes' => true, 'idPrefix' => 'oc-file-'])
 
         @include('moonshine-media-manager::partials.browser-list', ['showCheckboxes' => true, 'showSelection' => true, 'idPrefix' => 'oc-file-'])
 

@@ -218,6 +218,9 @@ document.addEventListener('alpine:init', () => {
         /** @type {string[]} Paths of selected files that are broken (404) */
         brokenSelectedPaths: [],
 
+        /** @type {boolean} Whether the scrollable container is scrolled down enough to show the button */
+        mmScrolled: false,
+
         // -- Modal form state --
         renamePath: '',
         renameNew: '',
@@ -239,12 +242,22 @@ document.addEventListener('alpine:init', () => {
                     this.$nextTick(() => {
                         this.loadFiles('/');
                         this._debouncedCheckSelected();
+                        this._setupOffcanvasScroll();
                     });
                 }
             });
 
             this.$watch('$store.mm.selected.length', () => {
                 this._debouncedCheckSelected();
+            });
+        },
+
+        _setupOffcanvasScroll() {
+            const body = this.$el?.closest('.offcanvas-body');
+            if (!body || body._mmScrollBound) return;
+            body._mmScrollBound = true;
+            body.addEventListener('scroll', () => {
+                this.mmScrolled = body.scrollTop > 200;
             });
         },
 
@@ -412,7 +425,15 @@ document.addEventListener('alpine:init', () => {
                 || document.getElementById('file-' + id);
 
             if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const container = el.closest('.offcanvas-body') || el.closest('[style*="overflow"]');
+                if (container) {
+                    const containerRect = container.getBoundingClientRect();
+                    const elRect = el.getBoundingClientRect();
+                    const offset = elRect.top - containerRect.top + container.scrollTop - container.clientHeight / 2 + el.clientHeight / 2;
+                    container.scrollTo({ top: offset, behavior: 'smooth' });
+                } else {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }
 
             if (this._highlightTimeout) {
