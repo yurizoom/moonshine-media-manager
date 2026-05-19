@@ -53,6 +53,9 @@ document.addEventListener('alpine:init', () => {
         isOpen: false,
 
         /** @type {boolean} */
+        mmScrolled: false,
+
+        /** @type {boolean} */
         multiple: false,
 
         /** @type {string[]} */
@@ -218,9 +221,6 @@ document.addEventListener('alpine:init', () => {
         /** @type {string[]} Paths of selected files that are broken (404) */
         brokenSelectedPaths: [],
 
-        /** @type {boolean} Whether the scrollable container is scrolled down enough to show the button */
-        mmScrolled: false,
-
         // -- Modal form state --
         renamePath: '',
         renameNew: '',
@@ -256,8 +256,9 @@ document.addEventListener('alpine:init', () => {
             const body = this.$el?.closest('.offcanvas-body');
             if (!body || body._mmScrollBound) return;
             body._mmScrollBound = true;
+            const store = Alpine.store('mm');
             body.addEventListener('scroll', () => {
-                this.mmScrolled = body.scrollTop > 200;
+                store.mmScrolled = body.scrollTop > 200;
             });
         },
 
