@@ -13,7 +13,7 @@
 
         {{-- Scroll to top button --}}
         <button type="button"
-                x-show="mmScrolled"
+                x-show="$store.mm.mmScrolled"
                 x-transition
                 @click.prevent="$el.closest('.offcanvas-body')?.scrollTo({top:0,behavior:'smooth'})"
                 class="mm-scroll-top-btn"

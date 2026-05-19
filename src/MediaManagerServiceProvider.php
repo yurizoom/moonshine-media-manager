@@ -67,6 +67,27 @@ final class MediaManagerServiceProvider extends ServiceProvider
                 MenuItem::make(MediaManagerPage::class),
             ]);
         }
+
+        $this->autoPublishAssets();
+    }
+
+    private function autoPublishAssets(): void
+    {
+        if (! $this->app->runningInConsole()) {
+            return;
+        }
+
+        $target = public_path('vendor/media-manager');
+        $source = realpath(__DIR__.'/../dist');
+
+        if (! $source || is_link($target)) {
+            return;
+        }
+
+        if (! is_dir($target) || filemtime($source.'/media-manager.js') > @filemtime($target.'/media-manager.js')) {
+            \Illuminate\Support\Facades\File::ensureDirectoryExists($target);
+            \Illuminate\Support\Facades\File::copyDirectory($source, $target);
+        }
     }
 
     private function registerViewComposer(): void
