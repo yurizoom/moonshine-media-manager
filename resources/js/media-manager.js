@@ -53,6 +53,9 @@ document.addEventListener('alpine:init', () => {
         isOpen: false,
 
         /** @type {boolean} */
+        mmScrolled: false,
+
+        /** @type {boolean} */
         multiple: false,
 
         /** @type {string[]} */
@@ -239,12 +242,23 @@ document.addEventListener('alpine:init', () => {
                     this.$nextTick(() => {
                         this.loadFiles('/');
                         this._debouncedCheckSelected();
+                        this._setupOffcanvasScroll();
                     });
                 }
             });
 
             this.$watch('$store.mm.selected.length', () => {
                 this._debouncedCheckSelected();
+            });
+        },
+
+        _setupOffcanvasScroll() {
+            const body = this.$el?.closest('.offcanvas-body');
+            if (!body || body._mmScrollBound) return;
+            body._mmScrollBound = true;
+            const store = Alpine.store('mm');
+            body.addEventListener('scroll', () => {
+                store.mmScrolled = body.scrollTop > 200;
             });
         },
 
@@ -412,7 +426,15 @@ document.addEventListener('alpine:init', () => {
                 || document.getElementById('file-' + id);
 
             if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const container = el.closest('.offcanvas-body') || el.closest('[style*="overflow"]');
+                if (container) {
+                    const containerRect = container.getBoundingClientRect();
+                    const elRect = el.getBoundingClientRect();
+                    const offset = elRect.top - containerRect.top + container.scrollTop - container.clientHeight / 2 + el.clientHeight / 2;
+                    container.scrollTo({ top: offset, behavior: 'smooth' });
+                } else {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }
 
             if (this._highlightTimeout) {

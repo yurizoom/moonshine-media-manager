@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\File;
 class MediaNavigator
 {
     protected array $fileTypes = [
-        'image' => 'png|jpg|jpeg|tmp|gif',
+        'image' => 'png|jpg|jpeg|tmp|gif|bmp|svg|ico',
         'word' => 'doc|docx',
         'ppt' => 'ppt|pptx',
         'pdf' => 'pdf',
