@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace YuriZoom\MoonShineMediaManager\Support;
 
 use Illuminate\Http\UploadedFile;
+use YuriZoom\MoonShineMediaManager\Exceptions\MediaManagerException;
 
 class MediaValidator
 {
@@ -42,6 +43,7 @@ class MediaValidator
         'avi' => ['video/x-msvideo'],
         'mov' => ['video/quicktime'],
         'mkv' => ['video/x-matroska'],
+        'svg' => ['image/svg+xml'],
     ];
 
     public function __construct(
@@ -57,7 +59,7 @@ class MediaValidator
 
         if ($this->allowed) {
             if (! in_array($realExtension, $this->allowed) && ! in_array($clientExtension, $this->allowed)) {
-                throw new \RuntimeException(
+                throw new MediaManagerException(
                     __('moonshine-media-manager::media-manager.error.file_extension_not_allowed', ['ext' => $file->getClientOriginalExtension()])
                 );
             }
@@ -69,7 +71,7 @@ class MediaValidator
             $expectedMimes = self::EXTENSION_MIME_MAP[$realExtension];
 
             if (! in_array($mimeType, $expectedMimes, true)) {
-                throw new \RuntimeException(
+                throw new MediaManagerException(
                     __('moonshine-media-manager::media-manager.error.mime_type_mismatch', [
                         'ext' => $realExtension,
                         'mime' => $mimeType,
@@ -79,7 +81,7 @@ class MediaValidator
         }
 
         if ($file->getSize() > $this->maxFileSize) {
-            throw new \RuntimeException(
+            throw new MediaManagerException(
                 __('moonshine-media-manager::media-manager.error.file_too_large', [
                     'max' => MediaFormatter::formatBytes($this->maxFileSize),
                 ])

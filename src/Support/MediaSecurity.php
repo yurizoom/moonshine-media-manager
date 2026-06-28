@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace YuriZoom\MoonShineMediaManager\Support;
 
+use YuriZoom\MoonShineMediaManager\Exceptions\MediaManagerException;
+
 class MediaSecurity
 {
     private const BLOCKED_PATHS = [
@@ -18,7 +20,7 @@ class MediaSecurity
 
         foreach (self::BLOCKED_PATHS as $blocked) {
             if (strtolower($firstSegment) === $blocked) {
-                throw new \RuntimeException(
+                throw new MediaManagerException(
                     __('moonshine-media-manager::media-manager.error.path_not_allowed')
                 );
             }

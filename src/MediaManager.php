@@ -11,6 +11,7 @@ use MoonShine\Support\Enums\ToastType;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileDeleted;
 use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileUploaded;
+use YuriZoom\MoonShineMediaManager\Exceptions\MediaManagerException;
 use YuriZoom\MoonShineMediaManager\Helpers\URLGenerator;
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 use YuriZoom\MoonShineMediaManager\Support\MediaNavigator;
@@ -41,7 +42,9 @@ class MediaManager
         $this->storage = Storage::disk($disk);
 
         if (! $this->storage->getAdapter() instanceof LocalFilesystemAdapter) {
-            toast(__('moonshine-media-manager::media-manager.error.only_local_storage'), ToastType::ERROR);
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.only_local_storage')
+            );
         }
     }
 
@@ -119,6 +122,10 @@ class MediaManager
 
     public function upload(array $files = []): bool
     {
+        if ($files === []) {
+            return true;
+        }
+
         $maxFileSize = config('moonshine.media_manager.max_file_size', 10 * 1024 * 1024);
         $allowed = ! empty(config('moonshine.media_manager.allowed_ext'))
             ? explode(',', config('moonshine.media_manager.allowed_ext'))

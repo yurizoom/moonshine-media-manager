@@ -9,6 +9,7 @@ use MoonShine\Contracts\Core\DependencyInjection\CrudRequestContract as MoonShin
 use MoonShine\Laravel\Http\Controllers\MoonShineController;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
+use YuriZoom\MoonShineMediaManager\Exceptions\MediaManagerException;
 use YuriZoom\MoonShineMediaManager\MediaManager;
 
 final class MediaManagerController extends MoonShineController
@@ -70,7 +71,7 @@ final class MediaManagerController extends MoonShineController
         $manager = new MediaManager($request->get('dir', '/'));
 
         try {
-            $result = $manager->upload($request->file('files'));
+            $result = $manager->upload($request->file('files', []));
         } catch (Throwable $e) {
             return $this->errorResponse($e);
         }
@@ -132,7 +133,9 @@ final class MediaManagerController extends MoonShineController
 
     private function errorResponse(Throwable $e, int $status = 400): JsonResponse
     {
-        report($e);
+        if (! $e instanceof MediaManagerException) {
+            report($e);
+        }
 
         return response()->json([
             'status' => false,
