@@ -56,6 +56,15 @@
                     <td>
                         <div class="flex justify-end gap-1">
                             <x-moonshine::link-button
+                                x-show="!file.isDir && file.type === 'image'"
+                                @click.prevent="$dispatch('img-popup', {open: true, src: file.url, wide: true, auto: true, styles: ''})"
+                                class="btn-sm"
+                                title="{{ __('moonshine-media-manager::media-manager.tooltip.view_image') }}"
+                            >
+                                <x-moonshine::icon icon="eye"/>
+                            </x-moonshine::link-button>
+
+                            <x-moonshine::link-button
                                 x-show="!file.isDir"
                                 @click.prevent="download(file)"
                                 class="btn-sm btn-success"

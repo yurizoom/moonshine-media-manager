@@ -60,6 +60,14 @@
                     <x-moonshine::dropdown>
                         <div class="dropdown-menu mm-list-dropdown-menu">
                             <x-moonshine::link-button
+                                    x-show="!file.isDir && file.type === 'image'"
+                                    @click.stop.prevent="$dispatch('img-popup', {open: true, src: file.url, wide: true, auto: true, styles: ''})"
+                                    class="mm-list-dropdown-btn"
+                            >
+                                <x-moonshine::icon icon="eye" class="mm-list-dropdown-icon"/>
+                                {{ __('moonshine-media-manager::media-manager.view_image') }}
+                            </x-moonshine::link-button>
+                            <x-moonshine::link-button
                                     x-show="!file.isDir"
                                     @click.stop.prevent="download(file)"
                                     class="mm-list-dropdown-btn"
