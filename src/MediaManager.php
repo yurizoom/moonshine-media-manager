@@ -123,6 +123,7 @@ class MediaManager
         $allowed = ! empty(config('moonshine.media_manager.allowed_ext'))
             ? explode(',', config('moonshine.media_manager.allowed_ext'))
             : [];
+        $renameDuplicates = (bool) config('moonshine.media_manager.rename_duplicates', true);
 
         $validator = new MediaValidator($allowed, $maxFileSize);
 
@@ -130,6 +131,11 @@ class MediaManager
             $validator->validateUploadedFile($file);
 
             $safeName = URLGenerator::sanitizeFileName($file->getClientOriginalName());
+
+            if ($renameDuplicates) {
+                $safeName = $this->uniqueName($safeName);
+            }
+
             $path = rtrim($this->path, '/').'/'.$safeName;
             $this->storage->putFileAs($this->path, $file, $safeName);
 
@@ -139,6 +145,35 @@ class MediaManager
         }
 
         return true;
+    }
+
+    /**
+     * Generate a unique filename inside the current path by appending a
+     * numeric suffix ("-1", "-2", ...) when a file with the same name
+     * already exists. Falls back to the original name after a sane limit.
+     */
+    private function uniqueName(string $name): string
+    {
+        $basePath = rtrim($this->path, '/');
+
+        if (! $this->storage->fileExists($basePath.'/'.$name)) {
+            return $name;
+        }
+
+        $basename = pathinfo($name, PATHINFO_FILENAME);
+        $extension = pathinfo($name, PATHINFO_EXTENSION);
+
+        for ($i = 1; $i <= 9999; $i++) {
+            $candidate = $extension !== ''
+                ? "{$basename}-{$i}.{$extension}"
+                : "{$basename}-{$i}";
+
+            if (! $this->storage->fileExists($basePath.'/'.$candidate)) {
+                return $candidate;
+            }
+        }
+
+        return $name;
     }
 
     public function newFolder(string $name): bool
