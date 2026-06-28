@@ -294,6 +294,22 @@ document.addEventListener('alpine:init', () => {
         },
 
         /**
+         * Parse JSON or throw on non-2xx (avoids cryptic "Unexpected token" on HTML error pages).
+         * @param {Response} response
+         * @returns {Promise<any>}
+         */
+        async _parseJsonResponse(response) {
+            if (! response.ok) {
+                if (response.status === 401 || response.status === 419) {
+                    throw new Error('Session expired. Please reload the page.');
+                }
+                throw new Error(`Request failed (HTTP ${response.status})`);
+            }
+
+            return response.json();
+        },
+
+        /**
          * Load files for a given path.
          * @param {string} path
          * @param {string|null} view
@@ -328,7 +344,7 @@ document.addEventListener('alpine:init', () => {
                     headers: this.ajaxHeaders,
                     signal: this._loadAbort.signal,
                 });
-                const data = await response.json();
+                const data = await this._parseJsonResponse(response);
 
                 if (data.status) {
                     this.files = data.files;
@@ -520,7 +536,7 @@ document.addEventListener('alpine:init', () => {
          * @param {Object} file
          */
         download(file) {
-            window.open(file.download, '_blank');
+            window.open(file.download, '_blank', 'noopener,noreferrer');
         },
 
         // -- Modal triggers --
@@ -570,7 +586,7 @@ document.addEventListener('alpine:init', () => {
                     body: formData,
                     headers: this.ajaxHeaders,
                 });
-                const data = await response.json();
+                const data = await this._parseJsonResponse(response);
 
                 if (data.status) {
                     this.toast(data.message || 'Uploaded', 'success');
@@ -602,7 +618,7 @@ document.addEventListener('alpine:init', () => {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                 });
-                const data = await response.json();
+                const data = await this._parseJsonResponse(response);
 
                 if (data.status) {
                     Alpine.store('mm').invalidateExistsCache(...this.deleteFiles);
@@ -637,7 +653,7 @@ document.addEventListener('alpine:init', () => {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                 });
-                const data = await response.json();
+                const data = await this._parseJsonResponse(response);
 
                 if (data.status) {
                     Alpine.store('mm').invalidateExistsCache(this.renamePath, this.renameNew);
@@ -671,7 +687,7 @@ document.addEventListener('alpine:init', () => {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                 });
-                const data = await response.json();
+                const data = await this._parseJsonResponse(response);
 
                 if (data.status) {
                     this.toast(data.message || 'Folder created', 'success');
