@@ -67,6 +67,9 @@ document.addEventListener('alpine:init', () => {
         /** @type {Array<{path: string, url: string, type: string}>} */
         selected: [],
 
+        /** @type {string|null} */
+        lastPath: null,
+
         /** @type {Function|null} */
         _callback: null,
 
@@ -240,7 +243,7 @@ document.addEventListener('alpine:init', () => {
                     this.files = [];
                     this.brokenSelectedPaths = [];
                     this.$nextTick(() => {
-                        this.loadFiles('/');
+                        this.loadFiles(Alpine.store('mm').lastPath || '/');
                         this._debouncedCheckSelected();
                         this._setupOffcanvasScroll();
                     });
@@ -334,6 +337,7 @@ document.addEventListener('alpine:init', () => {
                     this.path = data.path;
                     this.view = data.view;
                     this.jumpPath = data.path;
+                    Alpine.store('mm').lastPath = data.path;
                 } else {
                     this.toast(data.message || 'Error', 'error');
                 }

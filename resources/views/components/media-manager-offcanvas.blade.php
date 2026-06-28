@@ -92,13 +92,13 @@
 
         @include('moonshine-media-manager::partials.browser-loading')
 
-        @include('moonshine-media-manager::partials.browser-table', ['showCheckboxes' => true, 'idPrefix' => 'oc-file-'])
+        @include('moonshine-media-manager::partials.browser-table', ['showCheckboxes' => true, 'showUrlButton' => true, 'idPrefix' => 'oc-file-'])
 
-        @include('moonshine-media-manager::partials.browser-list', ['showCheckboxes' => true, 'showSelection' => true, 'idPrefix' => 'oc-file-'])
+        @include('moonshine-media-manager::partials.browser-list', ['showCheckboxes' => true, 'showSelection' => true, 'showUrlButton' => true, 'idPrefix' => 'oc-file-'])
 
         @include('moonshine-media-manager::partials.browser-empty-state')
 
-        @include('moonshine-media-manager::partials.browser-modals')
+        @include('moonshine-media-manager::partials.browser-modals', ['showUrlModal' => true])
 
     </div>
 </x-moonshine::off-canvas>
