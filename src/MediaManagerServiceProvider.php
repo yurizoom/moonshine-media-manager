@@ -17,10 +17,7 @@ final class MediaManagerServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(
-            __DIR__.'/../config/media-manager.php',
-            'moonshine.media_manager'
-        );
+        $this->registerConfig();
 
         $this->loadTranslationsFrom(
             __DIR__.'/../resources/lang',
@@ -31,6 +28,30 @@ final class MediaManagerServiceProvider extends ServiceProvider
             MediaManagerRegistryInterface::class,
             MediaManagerRegistry::class,
         );
+    }
+
+    /**
+     * Resolve configuration from three sources with precedence:
+     *   package defaults  <  legacy (config/moonshine.php → media_manager)  <  standalone (config/media-manager.php)
+     *
+     * Both namespaces are kept in sync so existing reads via
+     * config('moonshine.media_manager.*') keep working, while users get a
+     * dedicated config/media-manager.php file that survives republishing of
+     * the main moonshine.php config.
+     */
+    private function registerConfig(): void
+    {
+        $defaults = require __DIR__.'/../config/media-manager.php';
+
+        $legacy = (array) config('moonshine.media_manager', []);
+        $standalone = (array) config('media-manager', []);
+
+        $resolved = array_merge($defaults, $legacy, $standalone);
+
+        config([
+            'media-manager' => $resolved,
+            'moonshine.media_manager' => $resolved,
+        ]);
     }
 
     public function boot(CoreContract $core, MenuManagerContract $menu): void
@@ -45,7 +66,7 @@ final class MediaManagerServiceProvider extends ServiceProvider
         );
 
         $this->publishes([
-            __DIR__.'/../config/media-manager.php' => config_path('moonshine/media-manager.php'),
+            __DIR__.'/../config/media-manager.php' => config_path('media-manager.php'),
         ], 'moonshine-media-manager-config');
 
         $this->publishes([
