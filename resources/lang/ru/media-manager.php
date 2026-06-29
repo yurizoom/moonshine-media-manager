@@ -36,6 +36,11 @@ return [
         'file_too_large' => "Файл превышает максимальный размер :max",
         'path_not_allowed' => "Доступ к этому пути запрещён",
         'operation_failed' => "Операция не удалась. Попробуйте снова.",
+        'folder_already_exists' => "Папка \":name\" уже существует",
+        'already_exists' => "Путь \":name\" уже существует",
+        'same_path' => "Новый путь совпадает с текущим",
+        'enter_name' => "Введите название",
+        'select_file' => "Выберите файл",
     ],
     'tooltip' => [
         'refresh' => 'Обновить',

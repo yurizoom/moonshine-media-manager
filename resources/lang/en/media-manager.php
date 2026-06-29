@@ -36,6 +36,11 @@ return [
         'file_too_large' => "File exceeds maximum size of :max",
         'path_not_allowed' => "Access to this path is not allowed",
         'operation_failed' => "Operation failed. Please try again.",
+        'folder_already_exists' => "Folder \":name\" already exists",
+        'already_exists' => "Path \":name\" already exists",
+        'same_path' => "New path is the same as the current one",
+        'enter_name' => "Please enter a name",
+        'select_file' => "Please select a file",
     ],
     'tooltip' => [
         'refresh' => 'Refresh',

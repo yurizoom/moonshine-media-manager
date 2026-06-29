@@ -7,6 +7,7 @@ namespace YuriZoom\MoonShineMediaManager\Helpers;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use YuriZoom\MoonShineMediaManager\Enums\MediaManagerView as MediaManagerViewEnums;
+use YuriZoom\MoonShineMediaManager\Exceptions\MediaManagerException;
 
 class URLGenerator
 {
@@ -99,7 +100,7 @@ class URLGenerator
         $segments = explode('.', strtolower($name));
         foreach ($segments as $segment) {
             if (in_array($segment, self::DANGEROUS_EXTENSIONS, true)) {
-                throw new \RuntimeException(
+                throw new MediaManagerException(
                     __('moonshine-media-manager::media-manager.error.file_extension_not_allowed', ['ext' => $segment])
                 );
             }
