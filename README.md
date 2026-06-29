@@ -36,24 +36,30 @@ composer require yurizoom/moonshine-media-manager
 
 Полностью AJAX — загрузка, удаление, переименование, навигация по папкам без перезагрузки страницы.
 
-После установки опубликуйте ассеты:
+После установки опубликуйте ассеты и конфиг:
 
 ```bash
 php artisan vendor:publish --tag=moonshine-media-manager-assets
+php artisan vendor:publish --tag=moonshine-media-manager-config
 ```
 
 ### Конфигурация
 
-Добавьте в `config/moonshine.php`:
+Конфиг публикуется в `config/media-manager.php` (корневой файл). Поддерживается
+fallback — если ключи найдены в `config/moonshine.php` → `media_manager`, они
+тоже применяются. Приоритет: standalone файл > `moonshine.php` > дефолты пакета.
 
 ```php
-'media_manager' => [
-    'auto_menu' => true,
-    'disk' => config('filesystem.default', 'public'),
-    'allowed_ext' => 'jpg,jpeg,png,gif,webp,avif,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,txt,mp3,mp4,wav,avi,mov',
-    'max_file_size' => env('MOONSHINE_MEDIA_MANAGER_MAX_FILE_SIZE', 50 * 1024 * 1024),
+// config/media-manager.php
+return [
+    'disk' => config('filesystems.default', 'public'),
+    'allowed_ext' => 'jpg,jpeg,png,gif,webp,avif,svg,bmp,ico,heic,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,7z,tar,gz,txt,md,csv,json,yaml,yml,mp3,wav,ogg,m4a,aac,flac,mp4,avi,mov,mkv,webm',
+    'max_file_size' => env('MOONSHINE_MEDIA_MANAGER_MAX_FILE_SIZE', 10 * 1024 * 1024),
+    'rename_duplicates' => env('MOONSHINE_MEDIA_MANAGER_RENAME_DUPLICATES', true),
+    'auto_menu' => env('MOONSHINE_MEDIA_MANAGER_AUTO_MENU', true),
+    'ability' => env('MOONSHINE_MEDIA_MANAGER_ABILITY'),
     'default_view' => 'table',
-],
+];
 ```
 
 ### Подключение OffCanvas
@@ -163,30 +169,79 @@ Layouts::make('Контент', 'content')
 ### Возможности v4
 
 - **AJAX навигация** — переход по папкам без перезагрузки
-- **Загрузка файлов** — множественная загрузка с проверкой MIME-типа, расширения и размера файла
-- **Создание папок** — прямо из интерфейса
-- **Переименование / перемещение** — через модалку с указанием нового пути
+- **Поиск / фильтр / сортировка** — мгновенный поиск по имени, фильтр по типу
+  (Images / Documents / Video / Audio / Archives), сортировка по имени / дате / размеру
+- **Загрузка файлов** — множественная загрузка с проверкой MIME, расширения и размера.
+  Drag-and-drop из файлового менеджера в любую область страницы.
+  Redesigned modal с превью выбранных файлов и размером.
+- **Replace file** — перезапись файла по тому же пути (контент меняется, URL не ломается)
+- **Move file** — перемещение через folder browser без ввода путей вручную
+- **Создание папок** — прямо из интерфейса, с проверкой на существование
+- **Переименование** — с валидацией конфликтов и дубликатов
+- **Bulk delete** — массовое удаление выбранных файлов из selection bar
 - **Удаление** — с подтверждением
 - **Скачивание** — по клику
 - **URL файла** — просмотр ссылки с копированием
+- **Inline-валидация** — ошибки показываются прямо в модалках, всё локализовано
 - **Два вида** — таблица и сетка (grid)
-- **Быстрый переход** — ввод пути вручную
+- **Пикер запоминает папку** — при повторном открытии возвращается в последнюю папку
+- **Lazy-load** — превью загружаются только при скролле к ним
+- **Cache-busting** — после Replace браузер автоматически обновляет изображение
 - **Picker-поле** — выбор файлов из менеджера прямо в форме
-- **Drag-and-drop** — перетаскивание для изменения порядка в picker
-- **Подсветка навигации** — при переходе к файлу из picker
-- **Проверка файлов** — детекция несуществующих файлов (broken state)
-- **Превью** — клик по изображению открывает полноразмерный просмотр
-- **Не-изображения** — отображение иконки с расширением для PDF, DOC и т.д.
+- **Drag-and-drop reorder** — перетаскивание для изменения порядка в picker
 - **Layouts / Json** — полная интеграция с moonshine/layouts-field и Json-полями
+
+### Authorization (опционально)
+
+По умолчанию любой аутентифицированный юзер MoonShine имеет полный доступ к менеджеру.
+Для ограничения — задайте Gate ability в `.env`:
+
+```bash
+MOONSHINE_MEDIA_MANAGER_ABILITY=manage-media
+```
+
+И определите Gate в `AuthServiceProvider`:
+
+```php
+use Illuminate\Support\Facades\Gate;
+
+Gate::define('manage-media', function (User $user) {
+    return $user->hasRole('admin');
+});
+```
+
+Теперь только админы имеют доступ. Остальные получают 403.
+
+### События
+
+Пакет диспатчит события для интеграции с внешним кодом:
+
+| Событие | Когда | Параметры |
+|---|---|---|
+| `MediaManagerFileUploaded` | Файл загружен | `$path, $disk` |
+| `MediaManagerFileReplaced` | Файл заменён (Replace) | `$path, $disk` |
+| `MediaManagerFileDeleted` | Файл удалён | `$path, $disk` |
+
+```php
+use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileUploaded;
+
+protected $listen = [
+    MediaManagerFileUploaded::class => [
+        GenerateThumbnailListener::class,
+    ],
+];
+```
 
 ### Конфигурация v4
 
 | Параметр | По умолчанию | Описание |
 |----------|-------------|----------|
-| `auto_menu` | `true` | Автоматически добавить в боковое меню |
 | `disk` | `public` | Диск файлового хранилища (только локальный) |
-| `allowed_ext` | `jpg,jpeg,png,gif,...` | Разрешённые для загрузки расширения (проверка по MIME + расширению) |
-| `max_file_size` | `10485760` (10 MB) | Максимальный размер загружаемого файла в байтах |
+| `allowed_ext` | `jpg,jpeg,png,...` | Разрешённые расширения (с MIME-проверкой) |
+| `max_file_size` | `10485760` (10 MB) | Макс. размер загружаемого файла |
+| `rename_duplicates` | `true` | Переименовать дубликат (`file.jpg` → `file-1.jpg`) вместо перезаписи |
+| `auto_menu` | `true` | Автоматически добавить в боковое меню |
+| `ability` | `null` | Gate ability для авторизации (`null` = без проверки) |
 | `default_view` | `table` | Вид по умолчанию: `table` или `list` |
 
 ---
