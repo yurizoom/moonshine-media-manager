@@ -12,8 +12,17 @@ final class MediaAssets
     public static function get(): array
     {
         return [
-            Css::make('/vendor/media-manager/media-manager.css'),
-            Js::make('/vendor/media-manager/media-manager.js'),
+            Css::make(self::versioned('/vendor/media-manager/media-manager.css')),
+            Js::make(self::versioned('/vendor/media-manager/media-manager.js')),
         ];
+    }
+
+    /** Append ?v={filemtime} so the browser refetches the file after every republish. */
+    private static function versioned(string $relativePath): string
+    {
+        $absolutePath = public_path(ltrim($relativePath, '/'));
+        $mtime = is_file($absolutePath) ? @filemtime($absolutePath) : false;
+
+        return $relativePath.($mtime ? '?v='.$mtime : '');
     }
 }

@@ -18,7 +18,7 @@
             </tr>
         </x-slot:thead>
         <x-slot:tbody>
-            <template x-for="file in files" :key="file.path">
+            <template x-for="file in displayedFiles" :key="file.path">
                 <tr :id="'{{ $idPrefix }}' + file.path.replace(/[^a-zA-Z0-9]/g, '_')"
                     :class="highlightPath === file.path ? 'mm-table-row--highlight' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'">
                     @if($showCheckboxes)
@@ -42,7 +42,7 @@
                             </template>
                             <template x-if="!file.isDir && file.type === 'image'">
                                 <div class="mm-table-thumb">
-                                    <img :src="file.url" alt=""/>
+                                    <img :src="file.url" alt="" loading="lazy" decoding="async"/>
                                 </div>
                             </template>
                             <template x-if="!file.isDir && file.type !== 'image'">
@@ -83,6 +83,24 @@
                                     <x-moonshine::icon icon="globe-alt"/>
                                 </x-moonshine::link-button>
                             @endif
+
+                            <x-moonshine::link-button
+                                x-show="!file.isDir"
+                                @click.prevent="openReplaceModal(file)"
+                                class="btn-sm btn-warning"
+                                title="{{ __('moonshine-media-manager::media-manager.replace_action') }}"
+                            >
+                                <x-moonshine::icon icon="arrow-path"/>
+                            </x-moonshine::link-button>
+
+                            <x-moonshine::link-button
+                                x-show="!file.isDir"
+                                @click.prevent="openMoveModal(file)"
+                                class="btn-sm btn-secondary"
+                                title="{{ __('moonshine-media-manager::media-manager.move_action') }}"
+                            >
+                                <x-moonshine::icon icon="folder-open"/>
+                            </x-moonshine::link-button>
 
                             @foreach($mmFileActions as $actionName => $action)
                                 <x-moonshine::link-button

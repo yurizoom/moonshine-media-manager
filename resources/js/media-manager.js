@@ -34,13 +34,27 @@ async function mmCheckUrlExists(url, cache, path, signal) {
     try {
         const resp = await fetch(url, { method: 'HEAD', cache: 'no-store', signal });
         const exists = resp.ok;
-        cache[path] = exists;
+        mmCacheSet(cache, path, exists);
         return exists;
     } catch {
         if (signal?.aborted) return false;
-        cache[path] = false;
+        mmCacheSet(cache, path, false);
         return false;
     }
+}
+
+const MM_EXISTS_CACHE_LIMIT = 200;
+
+function mmCacheSet(cache, key, value) {
+    const keys = Object.keys(cache);
+    if (keys.length >= MM_EXISTS_CACHE_LIMIT) {
+        // Evict oldest ~25% of entries to amortise the cost over many insertions.
+        const evictCount = Math.max(1, Math.floor(MM_EXISTS_CACHE_LIMIT * 0.25));
+        for (let i = 0; i < evictCount; i++) {
+            delete cache[keys[i]];
+        }
+    }
+    cache[key] = value;
 }
 
 document.addEventListener('alpine:init', () => {
@@ -232,7 +246,29 @@ document.addEventListener('alpine:init', () => {
         newFolderName: '',
         imagePreviewSrc: '',
 
+        replacePath: '',
+        replaceFileName: '',
+        replacePreview: '',
+        pendingReplace: null,
+
+        movePath: '',
+        moveBrowserPath: '/',
+        moveBrowserFolders: [],
+        moveBrowserLoading: false,
+
         formError: '',
+
+        pendingUploads: [],
+
+        // -- Search / filter / sort --
+        searchQuery: '',
+        typeFilter: 'all',
+        sortField: 'name',
+        sortDir: 'asc',
+
+        isDragOver: false,
+
+        isSubmitting: false,
 
         init() {
             this.$nextTick(() => this.loadFiles('/'));
@@ -240,6 +276,48 @@ document.addEventListener('alpine:init', () => {
             const refreshHandler = () => this.refresh();
             window.addEventListener('mm:refresh', refreshHandler);
             this.$cleanup?.(() => window.removeEventListener('mm:refresh', refreshHandler));
+
+            // Window-level handlers so files dropped anywhere trigger upload (not only inside our root).
+            // Gated on Files type so we don't break drag-drop of text/images between other elements.
+            this._onDragOver = (e) => {
+                if (e.dataTransfer?.types?.includes('Files')) {
+                    e.preventDefault();
+                }
+            };
+            this._onDragEnter = (e) => {
+                if (! e.dataTransfer?.types?.includes('Files')) return;
+                this.dragCounter++;
+                this.isDragOver = true;
+            };
+            this._onDragLeave = () => {
+                if (this.dragCounter <= 0) return;
+                this.dragCounter--;
+                if (this.dragCounter <= 0) {
+                    this.isDragOver = false;
+                    this.dragCounter = 0;
+                }
+            };
+            this._onDrop = async (e) => {
+                if (! e.dataTransfer?.types?.includes('Files')) return;
+                e.preventDefault();
+                this.dragCounter = 0;
+                this.isDragOver = false;
+                const files = Array.from(e.dataTransfer?.files ?? []);
+                if (! files.length) return;
+                await this.submitUpload(files);
+            };
+
+            window.addEventListener('dragover', this._onDragOver, false);
+            window.addEventListener('dragenter', this._onDragEnter, false);
+            window.addEventListener('dragleave', this._onDragLeave, false);
+            window.addEventListener('drop', this._onDrop, false);
+
+            this.$cleanup?.(() => {
+                window.removeEventListener('dragover', this._onDragOver);
+                window.removeEventListener('dragenter', this._onDragEnter);
+                window.removeEventListener('dragleave', this._onDragLeave);
+                window.removeEventListener('drop', this._onDrop);
+            });
 
             this.$watch('$store.mm.isOpen', (open) => {
                 if (open) {
@@ -503,6 +581,64 @@ document.addEventListener('alpine:init', () => {
         isImageUrl: mmIsImageUrl,
 
         /**
+         * Files after search + type filter + sort are applied.
+         * Folders always pass the type filter (so navigation works during search).
+         * @returns {Array}
+         */
+        get displayedFiles() {
+            const q = this.searchQuery.trim().toLowerCase();
+            const typeMap = {
+                images: ['image'],
+                documents: ['word', 'excel', 'ppt', 'pdf', 'text', 'code'],
+                video: ['video'],
+                audio: ['audio'],
+                archives: ['archive'],
+            };
+            const allowedTypes = this.typeFilter !== 'all' ? (typeMap[this.typeFilter] || []) : null;
+
+            let list = this.files.filter((f) => {
+                if (q && ! this.basename(f.path).toLowerCase().includes(q)) {
+                    return false;
+                }
+                if (allowedTypes && ! f.isDir && ! allowedTypes.includes(f.type)) {
+                    return false;
+                }
+                return true;
+            });
+
+            const dir = this.sortDir === 'desc' ? -1 : 1;
+            const field = this.sortField;
+
+            return list.slice().sort((a, b) => {
+                if (a.isDir !== b.isDir) {
+                    return a.isDir ? -1 : 1;
+                }
+                let av;
+                let bv;
+                if (field === 'name') {
+                    av = this.basename(a.path).toLowerCase();
+                    bv = this.basename(b.path).toLowerCase();
+                } else if (field === 'date') {
+                    av = a.timeRaw ?? 0;
+                    bv = b.timeRaw ?? 0;
+                } else if (field === 'size') {
+                    av = a.sizeBytes ?? 0;
+                    bv = b.sizeBytes ?? 0;
+                }
+                if (av < bv) return -1 * dir;
+                if (av > bv) return 1 * dir;
+                return 0;
+            });
+        },
+
+        clearFilters() {
+            this.searchQuery = '';
+            this.typeFilter = 'all';
+            this.sortField = 'name';
+            this.sortDir = 'asc';
+        },
+
+        /**
          * Check which selected files are broken (404).
          * Uses debounce, AbortController, and a shared cache to avoid redundant HEAD requests.
          */
@@ -548,6 +684,10 @@ document.addEventListener('alpine:init', () => {
 
         openUploadModal() {
             this.formError = '';
+            this.pendingUploads.forEach((p) => {
+                if (p.preview) URL.revokeObjectURL(p.preview);
+            });
+            this.pendingUploads = [];
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
         },
 
@@ -570,6 +710,16 @@ document.addEventListener('alpine:init', () => {
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');
         },
 
+        bulkDelete() {
+            const paths = Alpine.store('mm').selected.map(f => f.path);
+            if (! paths.length) {
+                return;
+            }
+            this.formError = '';
+            this.deleteFiles = paths;
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');
+        },
+
         openUrlModal(file) {
             this.urlToShow = file.url || '';
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'url');
@@ -580,13 +730,184 @@ document.addEventListener('alpine:init', () => {
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'image-preview');
         },
 
+        openReplaceModal(file) {
+            this.formError = '';
+            this.replacePath = file.path;
+            this.replaceFileName = this.basename(file.path);
+            this.replacePreview = file.type === 'image' ? file.url : '';
+            if (this.pendingReplace?.preview) {
+                URL.revokeObjectURL(this.pendingReplace.preview);
+            }
+            this.pendingReplace = null;
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'replace');
+        },
+
+        openMoveModal(file) {
+            this.formError = '';
+            this.movePath = file.path;
+            this.moveBrowserPath = '/';
+            this.moveBrowserFolders = [];
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'move');
+            this.loadMoveFolders('/');
+        },
+
+        moveBrowserUp() {
+            const parts = this.moveBrowserPath.split('/').filter(Boolean);
+            parts.pop();
+            this.loadMoveFolders('/' + parts.join('/'));
+        },
+
+        async loadMoveFolders(path) {
+            path = path || '/';
+            this.moveBrowserLoading = true;
+            try {
+                const params = new URLSearchParams({ path, view: this.view });
+                const response = await fetch(this.urls.index + '?' + params.toString(), {
+                    headers: this.ajaxHeaders,
+                });
+                const data = await this._parseJsonResponse(response);
+                if (data.status) {
+                    this.moveBrowserFolders = (data.files || []).filter((f) => f.isDir);
+                    this.moveBrowserPath = data.path;
+                }
+            } catch (e) {
+            }
+            this.moveBrowserLoading = false;
+        },
+
+        get moveDestinationPath() {
+            const filename = this.basename(this.movePath);
+            const base = this.moveBrowserPath === '/' ? '' : this.moveBrowserPath;
+            return base + '/' + filename;
+        },
+
+        async submitMove() {
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
+            try {
+                const params = new URLSearchParams({
+                    path: this.movePath,
+                    new: this.moveDestinationPath,
+                });
+                const response = await fetch(this.urls.move, {
+                    method: 'POST',
+                    body: params,
+                    headers: {
+                        ...this.ajaxHeaders,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                });
+                const data = await this._parseJsonResponse(response);
+                if (data.status) {
+                    Alpine.store('mm').invalidateExistsCache(this.movePath, this.moveDestinationPath);
+                    const newVersion = Date.now();
+                    Alpine.store('mm').selected.forEach((item) => {
+                        if (item.path === this.movePath) {
+                            item.path = this.moveDestinationPath;
+                            const cleanUrl = (item.url || '').split('?')[0];
+                            const cleanUrlNoCache = cleanUrl.replace(/\/[^/]+$/, '/' + this.basename(this.moveDestinationPath));
+                            item.url = cleanUrlNoCache + '?v=' + newVersion;
+                        }
+                    });
+                    window.dispatchEvent(new CustomEvent('mm:replaced', { detail: { path: this.moveDestinationPath } }));
+                    this.toast(data.message || 'Moved', 'success');
+                    this.formError = '';
+                    window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'move');
+                    this.refresh();
+                } else {
+                    this.formError = data.message || 'Move failed';
+                }
+            } catch (e) {
+                this.formError = e.message || 'Move failed';
+            } finally {
+                this.isSubmitting = false;
+            }
+        },
+
+        addReplaceFile(fileList) {
+            const file = Array.from(fileList ?? [])[0];
+            if (! file) return;
+            if (this.pendingReplace?.preview) {
+                URL.revokeObjectURL(this.pendingReplace.preview);
+            }
+            this.pendingReplace = {
+                file,
+                name: file.name,
+                size: file.size,
+                isImage: mmIsImageUrl(file.name),
+                preview: mmIsImageUrl(file.name) ? URL.createObjectURL(file) : '',
+            };
+        },
+
+        clearReplaceFile() {
+            if (this.pendingReplace?.preview) {
+                URL.revokeObjectURL(this.pendingReplace.preview);
+            }
+            this.pendingReplace = null;
+        },
+
+        async submitReplace() {
+            if (this.isSubmitting) return;
+            if (! this.pendingReplace) {
+                return;
+            }
+            this.isSubmitting = true;
+            try {
+                const formData = new FormData();
+                formData.append('path', this.replacePath);
+                formData.append('file', this.pendingReplace.file);
+
+                const response = await fetch(this.urls.replace, {
+                    method: 'POST',
+                    body: formData,
+                    headers: this.ajaxHeaders,
+                });
+                const data = await this._parseJsonResponse(response);
+
+                if (data.status) {
+                    Alpine.store('mm').invalidateExistsCache(this.replacePath);
+                    const newVersion = Date.now();
+                    Alpine.store('mm').selected.forEach((item) => {
+                        if (item.path === this.replacePath) {
+                            const cleanUrl = (item.url || '').split('?')[0];
+                            item.url = cleanUrl + '?v=' + newVersion;
+                        }
+                    });
+                    window.dispatchEvent(new CustomEvent('mm:replaced', { detail: { path: this.replacePath } }));
+                    this.toast(data.message || 'Replaced', 'success');
+                    this.clearReplaceFile();
+                    this.formError = '';
+                    window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'replace');
+                    this.refresh();
+                } else {
+                    this.formError = data.message || 'Replace failed';
+                }
+            } catch (e) {
+                this.formError = e.message || 'Replace failed';
+            } finally {
+                this.isSubmitting = false;
+            }
+        },
+
         // -- Submit handlers --
 
-        async submitUpload() {
-            const input = document.getElementById(this.modalPrefix + 'upload-input');
+        async submitUpload(fileList = null) {
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
+            try {
+                await this._doUpload(fileList);
+            } finally {
+                this.isSubmitting = false;
+            }
+        },
+
+        async _doUpload(fileList) {
+            const isDirectDrop = fileList !== null;
+            const input = isDirectDrop ? null : document.getElementById(this.modalPrefix + 'upload-input');
+            const files = isDirectDrop ? fileList : this.pendingUploads.map((p) => p.file);
 
             const formData = new FormData();
-            for (const f of (input?.files ?? [])) {
+            for (const f of files) {
                 formData.append('files[]', f);
             }
             formData.append('dir', this.path);
@@ -602,22 +923,77 @@ document.addEventListener('alpine:init', () => {
                 if (data.status) {
                     this.toast(data.message || 'Uploaded', 'success');
                     this.formError = '';
-                    window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
-                    input.value = '';
+                    if (! isDirectDrop) {
+                        this.pendingUploads.forEach((p) => {
+                            if (p.preview) URL.revokeObjectURL(p.preview);
+                        });
+                        this.pendingUploads = [];
+                        if (input) input.value = '';
+                        window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
+                    }
                     this.refresh();
                 } else {
                     this.formError = data.message || 'Upload failed';
+                    if (isDirectDrop) {
+                        this.toast(data.message || 'Upload failed', 'error');
+                    }
                 }
             } catch (e) {
                 this.formError = e.message || 'Upload failed';
+                if (isDirectDrop) {
+                    this.toast(e.message || 'Upload failed', 'error');
+                }
             }
         },
 
+        addPendingFiles(fileList) {
+            for (const f of Array.from(fileList ?? [])) {
+                const isImage = mmIsImageUrl(f.name);
+                this.pendingUploads.push({
+                    id: Math.random().toString(36).slice(2),
+                    file: f,
+                    name: f.name,
+                    size: f.size,
+                    isImage,
+                    preview: isImage ? URL.createObjectURL(f) : '',
+                });
+            }
+        },
+
+        removePendingUpload(id) {
+            const item = this.pendingUploads.find((p) => p.id === id);
+            if (item?.preview) {
+                URL.revokeObjectURL(item.preview);
+            }
+            this.pendingUploads = this.pendingUploads.filter((p) => p.id !== id);
+        },
+
+        formatBytes(bytes) {
+            if (! bytes) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+        },
+
+        isDragOver: false,
+        dragCounter: 0,
+
+        async handleDrop(event) {
+            this.dragCounter = 0;
+            this.isDragOver = false;
+            const files = Array.from(event?.dataTransfer?.files ?? []);
+            if (! files.length) {
+                return;
+            }
+            await this.submitUpload(files);
+        },
+
         async submitDelete() {
+            if (this.isSubmitting) return;
             if (! this.deleteFiles.length) {
                 return;
             }
-
+            this.isSubmitting = true;
             try {
                 const params = new URLSearchParams();
                 this.deleteFiles.forEach(f => params.append('files[]', f));
@@ -634,6 +1010,9 @@ document.addEventListener('alpine:init', () => {
 
                 if (data.status) {
                     Alpine.store('mm').invalidateExistsCache(...this.deleteFiles);
+                    Alpine.store('mm').selected = Alpine.store('mm').selected.filter(
+                        f => ! this.deleteFiles.includes(f.path)
+                    );
                     this.toast(data.message || 'Deleted', 'success');
                     this.formError = '';
                     window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');
@@ -644,10 +1023,14 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 this.formError = e.message || 'Delete failed';
+            } finally {
+                this.isSubmitting = false;
             }
         },
 
         async submitRename() {
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
             try {
                 const params = new URLSearchParams({
                     path: this.renamePath,
@@ -675,10 +1058,14 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 this.formError = e.message || 'Rename failed';
+            } finally {
+                this.isSubmitting = false;
             }
         },
 
         async submitNewFolder() {
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
             try {
                 const params = new URLSearchParams({
                     dir: this.path,
@@ -706,6 +1093,8 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 this.formError = e.message || 'Failed to create folder';
+            } finally {
+                this.isSubmitting = false;
             }
         },
 
@@ -733,6 +1122,8 @@ document.addEventListener('alpine:init', () => {
 
         singleBroken: false,
 
+        previewVersion: 0,
+
         /** @type {AbortController|null} */
         _checkAbort: null,
 
@@ -742,9 +1133,21 @@ document.addEventListener('alpine:init', () => {
         init() {
             this.$nextTick(() => this._debouncedCheckFiles());
 
+            // Bump preview cache-buster when a file we care about is replaced elsewhere.
+            this._onReplaced = (e) => {
+                const replacedPath = e?.detail?.path;
+                const myPaths = this.paths;
+                if (! replacedPath || ! myPaths.includes(replacedPath)) {
+                    return;
+                }
+                this.previewVersion++;
+            };
+            window.addEventListener('mm:replaced', this._onReplaced);
+
             this.$cleanup?.(() => {
                 if (this._checkTimer) clearTimeout(this._checkTimer);
                 if (this._checkAbort) this._checkAbort.abort();
+                window.removeEventListener('mm:replaced', this._onReplaced);
             });
         },
 
@@ -805,11 +1208,16 @@ document.addEventListener('alpine:init', () => {
         },
 
         get previewUrl() {
-            if (!this.rawValue || this.multiple) {
+            if (! this.rawValue || this.multiple) {
                 return '';
             }
 
-            return this.baseUrl + '/' + this.rawValue;
+            return this.urlForPath(this.rawValue);
+        },
+
+        urlForPath(path) {
+            const base = this.baseUrl + '/' + path;
+            return this.previewVersion > 0 ? base + '?v=' + this.previewVersion : base;
         },
 
         get hasValue() {
