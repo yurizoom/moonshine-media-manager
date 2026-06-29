@@ -369,3 +369,40 @@
 .mm-scroll-top-btn:hover {
     opacity: .85;
 }
+
+/* -- Form error message inside modals -- */
+.mm-form-error {
+    font-size: 0.875rem;
+    color: var(--mm-color-danger);
+    margin-top: 0.25rem;
+}
+
+/* -- Modal form layout (replaces Tailwind utilities) -- */
+.mm-modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.mm-modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+.mm-modal-url {
+    word-break: break-all;
+    user-select: all;
+    font-size: 0.875rem;
+}
+.mm-modal-preview {
+    display: flex;
+    justify-content: center;
+}
+.mm-modal-preview img {
+    max-width: 100%;
+    height: auto;
+}
+.mm-modal-preview-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}

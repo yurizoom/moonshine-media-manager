@@ -11,6 +11,7 @@ use MoonShine\Support\Enums\ToastType;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileDeleted;
 use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileUploaded;
+use YuriZoom\MoonShineMediaManager\Exceptions\MediaManagerException;
 use YuriZoom\MoonShineMediaManager\Helpers\URLGenerator;
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 use YuriZoom\MoonShineMediaManager\Support\MediaNavigator;
@@ -41,7 +42,9 @@ class MediaManager
         $this->storage = Storage::disk($disk);
 
         if (! $this->storage->getAdapter() instanceof LocalFilesystemAdapter) {
-            toast(__('moonshine-media-manager::media-manager.error.only_local_storage'), ToastType::ERROR);
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.only_local_storage')
+            );
         }
     }
 
@@ -111,14 +114,38 @@ class MediaManager
 
     public function move(string $new): bool
     {
+        if (trim($new) === '' || $new === '/') {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.enter_name')
+            );
+        }
+
         $safeNew = URLGenerator::sanitizePath($new);
         MediaSecurity::assertNotBlockedPath($safeNew);
+
+        if ($safeNew === $this->path) {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.same_path')
+            );
+        }
+
+        if ($this->storage->fileExists($safeNew) || $this->storage->directoryExists($safeNew)) {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.already_exists', ['name' => $safeNew])
+            );
+        }
 
         return $this->storage->move($this->path, $safeNew);
     }
 
     public function upload(array $files = []): bool
     {
+        if ($files === []) {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.select_file')
+            );
+        }
+
         $maxFileSize = config('moonshine.media_manager.max_file_size', 10 * 1024 * 1024);
         $allowed = ! empty(config('moonshine.media_manager.allowed_ext'))
             ? explode(',', config('moonshine.media_manager.allowed_ext'))
@@ -178,8 +205,20 @@ class MediaManager
 
     public function newFolder(string $name): bool
     {
+        if (trim($name) === '') {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.enter_name')
+            );
+        }
+
         $safeName = URLGenerator::sanitizeFileName($name);
         $path = rtrim($this->path, '/').'/'.$safeName;
+
+        if ($this->storage->directoryExists($path)) {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.folder_already_exists', ['name' => $safeName])
+            );
+        }
 
         return $this->storage->makeDirectory($path);
     }

@@ -57,7 +57,7 @@
                         <div class="flex justify-end gap-1">
                             <x-moonshine::link-button
                                 x-show="!file.isDir && file.type === 'image'"
-                                @click.prevent="$dispatch('img-popup', {open: true, src: file.url, wide: true, auto: true, styles: ''})"
+                                @click.prevent="openImagePreview(file)"
                                 class="btn-sm"
                                 title="{{ __('moonshine-media-manager::media-manager.tooltip.view_image') }}"
                             >
@@ -75,6 +75,7 @@
 
                             @if($showUrlButton)
                                 <x-moonshine::link-button
+                                    x-show="!file.isDir"
                                     @click.prevent="openUrlModal(file)"
                                     class="btn-sm"
                                     title="{{ __('moonshine-media-manager::media-manager.tooltip.show_url') }}"

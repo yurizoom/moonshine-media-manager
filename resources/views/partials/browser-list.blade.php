@@ -61,7 +61,7 @@
                         <div class="dropdown-menu mm-list-dropdown-menu">
                             <x-moonshine::link-button
                                     x-show="!file.isDir && file.type === 'image'"
-                                    @click.stop.prevent="$dispatch('img-popup', {open: true, src: file.url, wide: true, auto: true, styles: ''})"
+                                    @click.stop.prevent="openImagePreview(file)"
                                     class="mm-list-dropdown-btn"
                             >
                                 <x-moonshine::icon icon="eye" class="mm-list-dropdown-icon"/>
@@ -77,6 +77,7 @@
                             </x-moonshine::link-button>
                             @if($showUrlButton)
                                 <x-moonshine::link-button
+                                        x-show="!file.isDir"
                                         @click.stop.prevent="openUrlModal(file)"
                                         class="mm-list-dropdown-btn"
                                 >
