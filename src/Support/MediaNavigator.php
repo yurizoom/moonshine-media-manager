@@ -34,6 +34,8 @@ class MediaNavigator
     public function formatFiles(array $files, callable $routeCallback): Collection
     {
         return collect($files)->map(function ($file) use ($routeCallback) {
+            $timeRaw = $this->getRawFileChangeTime($file);
+
             return [
                 'download' => $routeCallback('download', compact('file')),
                 'path' => $file,
@@ -43,9 +45,9 @@ class MediaNavigator
                 'size' => $this->getFilesize($file),
                 'sizeBytes' => $this->getRawFilesize($file),
                 'link' => $routeCallback('download', compact('file')),
-                'url' => $this->storage->url($file),
+                'url' => $this->cacheBustUrl($this->storage->url($file), $timeRaw),
                 'time' => $this->getFileChangeTime($file),
-                'timeRaw' => $this->getRawFileChangeTime($file),
+                'timeRaw' => $timeRaw,
             ];
         });
     }
@@ -54,6 +56,7 @@ class MediaNavigator
     {
         return collect($dirs)->map(function ($dir) use ($routeCallback) {
             $path = '/'.trim($dir, '/');
+            $timeRaw = $this->getRawFileChangeTime($dir);
 
             return [
                 'download' => '',
@@ -63,9 +66,9 @@ class MediaNavigator
                 'size' => '',
                 'sizeBytes' => $this->getRawFilesize($dir),
                 'link' => $routeCallback('index', ['path' => $path, 'view' => $this->defaultView]),
-                'url' => $this->storage->url($dir),
+                'url' => $this->cacheBustUrl($this->storage->url($dir), $timeRaw),
                 'time' => $this->getFileChangeTime($dir),
-                'timeRaw' => $this->getRawFileChangeTime($dir),
+                'timeRaw' => $timeRaw,
             ];
         });
     }
@@ -149,5 +152,12 @@ class MediaNavigator
             'path' => $path,
             'view' => $this->defaultView,
         ]);
+    }
+
+    private function cacheBustUrl(string $url, int $version): string
+    {
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url.$separator.'v='.$version;
     }
 }

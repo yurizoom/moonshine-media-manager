@@ -65,14 +65,14 @@
                     >×</button>
                     {{-- Image: OK --}}
                     <template x-if="isImageUrl(baseUrl + '/' + p) && !broken.includes(idx)">
-                         <img :src="baseUrl + '/' + p"
-                              class="zoom-in rounded object-cover ring-1 ring-black/5 dark:ring-white/10 cursor-pointer"
-                              :alt="p.split('/').pop()"
-                              loading="lazy"
-                              decoding="async"
-                              x-on:error="markBroken(idx)"
-                              @click.stop="$dispatch('img-popup', {open: true, src: baseUrl + '/' + p, wide: true, auto: true, styles: ''})"
-                         >
+                     <img :src="urlForPath(p)"
+                          class="zoom-in rounded object-cover ring-1 ring-black/5 dark:ring-white/10 cursor-pointer"
+                          :alt="p.split('/').pop()"
+                          loading="lazy"
+                          decoding="async"
+                          x-on:error="markBroken(idx)"
+                          @click.stop="$dispatch('img-popup', {open: true, src: urlForPath(p), wide: true, auto: true, styles: ''})"
+                     >
                     </template>
                     {{-- Image: broken --}}
                     <template x-if="isImageUrl(baseUrl + '/' + p) && broken.includes(idx)">

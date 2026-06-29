@@ -232,6 +232,11 @@ document.addEventListener('alpine:init', () => {
         newFolderName: '',
         imagePreviewSrc: '',
 
+        replacePath: '',
+        replaceFileName: '',
+        replacePreview: '',
+        pendingReplace: null,
+
         formError: '',
 
         pendingUploads: [],
@@ -704,6 +709,82 @@ document.addEventListener('alpine:init', () => {
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'image-preview');
         },
 
+        openReplaceModal(file) {
+            this.formError = '';
+            this.replacePath = file.path;
+            this.replaceFileName = this.basename(file.path);
+            this.replacePreview = file.type === 'image' ? file.url : '';
+            if (this.pendingReplace?.preview) {
+                URL.revokeObjectURL(this.pendingReplace.preview);
+            }
+            this.pendingReplace = null;
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'replace');
+        },
+
+        addReplaceFile(fileList) {
+            const file = Array.from(fileList ?? [])[0];
+            if (! file) return;
+            if (this.pendingReplace?.preview) {
+                URL.revokeObjectURL(this.pendingReplace.preview);
+            }
+            this.pendingReplace = {
+                file,
+                name: file.name,
+                size: file.size,
+                isImage: mmIsImageUrl(file.name),
+                preview: mmIsImageUrl(file.name) ? URL.createObjectURL(file) : '',
+            };
+        },
+
+        clearReplaceFile() {
+            if (this.pendingReplace?.preview) {
+                URL.revokeObjectURL(this.pendingReplace.preview);
+            }
+            this.pendingReplace = null;
+        },
+
+        async submitReplace() {
+            if (! this.pendingReplace) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('path', this.replacePath);
+            formData.append('file', this.pendingReplace.file);
+
+            try {
+                const response = await fetch(this.urls.replace, {
+                    method: 'POST',
+                    body: formData,
+                    headers: this.ajaxHeaders,
+                });
+                const data = await this._parseJsonResponse(response);
+
+                if (data.status) {
+                    Alpine.store('mm').invalidateExistsCache(this.replacePath);
+                    // Bust cache for selected items in offcanvas so their preview refetches.
+                    const newVersion = Date.now();
+                    Alpine.store('mm').selected.forEach((item) => {
+                        if (item.path === this.replacePath) {
+                            const cleanUrl = (item.url || '').split('?')[0];
+                            item.url = cleanUrl + '?v=' + newVersion;
+                        }
+                    });
+                    // Notify picker fields to bump their own preview version.
+                    window.dispatchEvent(new CustomEvent('mm:replaced', { detail: { path: this.replacePath } }));
+                    this.toast(data.message || 'Replaced', 'success');
+                    this.clearReplaceFile();
+                    this.formError = '';
+                    window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'replace');
+                    this.refresh();
+                } else {
+                    this.formError = data.message || 'Replace failed';
+                }
+            } catch (e) {
+                this.formError = e.message || 'Replace failed';
+            }
+        },
+
         // -- Submit handlers --
 
         async submitUpload(fileList = null) {
@@ -916,6 +997,8 @@ document.addEventListener('alpine:init', () => {
 
         singleBroken: false,
 
+        previewVersion: 0,
+
         /** @type {AbortController|null} */
         _checkAbort: null,
 
@@ -925,9 +1008,21 @@ document.addEventListener('alpine:init', () => {
         init() {
             this.$nextTick(() => this._debouncedCheckFiles());
 
+            // Bump preview cache-buster when a file we care about is replaced elsewhere.
+            this._onReplaced = (e) => {
+                const replacedPath = e?.detail?.path;
+                const myPaths = this.paths;
+                if (! replacedPath || ! myPaths.includes(replacedPath)) {
+                    return;
+                }
+                this.previewVersion++;
+            };
+            window.addEventListener('mm:replaced', this._onReplaced);
+
             this.$cleanup?.(() => {
                 if (this._checkTimer) clearTimeout(this._checkTimer);
                 if (this._checkAbort) this._checkAbort.abort();
+                window.removeEventListener('mm:replaced', this._onReplaced);
             });
         },
 
@@ -988,11 +1083,16 @@ document.addEventListener('alpine:init', () => {
         },
 
         get previewUrl() {
-            if (!this.rawValue || this.multiple) {
+            if (! this.rawValue || this.multiple) {
                 return '';
             }
 
-            return this.baseUrl + '/' + this.rawValue;
+            return this.urlForPath(this.rawValue);
+        },
+
+        urlForPath(path) {
+            const base = this.baseUrl + '/' + path;
+            return this.previewVersion > 0 ? base + '?v=' + this.previewVersion : base;
         },
 
         get hasValue() {

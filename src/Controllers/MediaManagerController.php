@@ -131,6 +131,28 @@ final class MediaManagerController extends MoonShineController
         ]);
     }
 
+    public function replace(MoonShineRequest $request): JsonResponse
+    {
+        $path = (string) $request->get('path', '/');
+        $file = $request->file('file');
+
+        try {
+            if (! $file) {
+                throw new \YuriZoom\MoonShineMediaManager\Exceptions\MediaManagerException(
+                    __('moonshine-media-manager::media-manager.error.select_file')
+                );
+            }
+            (new MediaManager('/'))->replace($path, $file);
+        } catch (Throwable $e) {
+            return $this->errorResponse($e);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => __('moonshine-media-manager::media-manager.replaced_successfully'),
+        ]);
+    }
+
     private function errorResponse(Throwable $e, int $status = 400): JsonResponse
     {
         if (! $e instanceof MediaManagerException) {

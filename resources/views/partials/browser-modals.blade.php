@@ -118,3 +118,57 @@
         </x-moonshine::form.button>
     </div>
 </x-moonshine::modal>
+
+<x-moonshine::modal name="{{ $modalPrefix }}replace" title="{{ __('moonshine-media-manager::media-manager.replace_action') }}" :closeOutside="false">
+    <div class="mm-modal-form">
+        <div class="mm-replace-current">
+            <span class="mm-replace-label">{{ __('moonshine-media-manager::media-manager.replace_current') }}:</span>
+            <span class="mm-replace-filename" x-text="replaceFileName"></span>
+        </div>
+
+        <template x-if="! pendingReplace">
+            <label class="mm-upload-dropzone" for="{{ $modalPrefix }}replace-input">
+                <x-moonshine::icon icon="cloud-arrow-up" class="mm-upload-dropzone-icon"/>
+                <span class="mm-upload-dropzone-text">{{ __('moonshine-media-manager::media-manager.replace_choose') }}</span>
+                <input type="file"
+                       id="{{ $modalPrefix }}replace-input"
+                       class="mm-upload-input"
+                       @change="addReplaceFile($event.target.files); $event.target.value = ''"
+                />
+            </label>
+        </template>
+
+        <template x-if="pendingReplace">
+            <div class="mm-upload-item">
+                <div class="mm-upload-thumb">
+                    <template x-if="pendingReplace.isImage && pendingReplace.preview">
+                        <img :src="pendingReplace.preview" alt=""/>
+                    </template>
+                    <template x-if="! pendingReplace.isImage">
+                        <x-moonshine::icon icon="document" class="mm-upload-thumb-icon"/>
+                    </template>
+                </div>
+                <div class="mm-upload-info">
+                    <span class="mm-upload-name" x-text="pendingReplace.name"></span>
+                    <span class="mm-upload-size" x-text="formatBytes(pendingReplace.size)"></span>
+                </div>
+                <button type="button"
+                        @click.prevent="clearReplaceFile()"
+                        class="mm-upload-remove"
+                        title="{{ __('moonshine-media-manager::media-manager.remove') }}"
+                >×</button>
+            </div>
+        </template>
+
+        <div x-show="formError" x-cloak class="mm-form-error" x-text="formError"></div>
+
+        <div class="mm-modal-actions">
+            <x-moonshine::form.button @click.stop.prevent="window.MoonShine?.ui?.toggleModal(modalPrefix + 'replace')" class="btn-secondary">
+                {{ __('moonshine-media-manager::media-manager.close') }}
+            </x-moonshine::form.button>
+            <x-moonshine::form.button @click.stop.prevent="submitReplace()" class="btn-warning">
+                {{ __('moonshine-media-manager::media-manager.replace_action') }}
+            </x-moonshine::form.button>
+        </div>
+    </div>
+</x-moonshine::modal>

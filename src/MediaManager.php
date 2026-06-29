@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace YuriZoom\MoonShineMediaManager;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Local\LocalFilesystemAdapter;
 use MoonShine\Support\Enums\ToastType;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileDeleted;
+use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileReplaced;
 use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileUploaded;
 use YuriZoom\MoonShineMediaManager\Exceptions\MediaManagerException;
 use YuriZoom\MoonShineMediaManager\Helpers\URLGenerator;
@@ -203,6 +205,35 @@ class MediaManager
         return $name;
     }
 
+    public function replace(string $path, UploadedFile $file): bool
+    {
+        $safePath = URLGenerator::sanitizePath($path);
+        MediaSecurity::assertNotBlockedPath($safePath);
+
+        if (! $this->storage->fileExists($safePath)) {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.file_not_exists', ['path' => $safePath])
+            );
+        }
+
+        $maxFileSize = config('moonshine.media_manager.max_file_size', 10 * 1024 * 1024);
+        $allowed = ! empty(config('moonshine.media_manager.allowed_ext'))
+            ? explode(',', config('moonshine.media_manager.allowed_ext'))
+            : [];
+        (new MediaValidator($allowed, $maxFileSize))->validateUploadedFile($file);
+
+        $directory = trim(dirname($safePath), '/');
+        $filename = basename($safePath);
+
+        $this->storage->putFileAs($directory === '' ? '/' : $directory, $file, $filename);
+
+        if (class_exists(MediaManagerFileReplaced::class)) {
+            MediaManagerFileReplaced::dispatch($safePath, $this->getDisk());
+        }
+
+        return true;
+    }
+
     public function newFolder(string $name): bool
     {
         if (trim($name) === '') {
@@ -242,6 +273,7 @@ class MediaManager
             'move' => route('moonshine.media.manager.move'),
             'delete' => route('moonshine.media.manager.delete'),
             'upload' => route('moonshine.media.manager.upload'),
+            'replace' => route('moonshine.media.manager.replace'),
             'new-folder' => route('moonshine.media.manager.new.folder'),
         ];
     }

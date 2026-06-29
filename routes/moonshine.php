@@ -10,4 +10,5 @@ Route::moonshine(static function (): void {
     Route::post('media/move', [MediaManagerController::class, 'move'])->name('media.manager.move');
     Route::post('media/upload', [MediaManagerController::class, 'upload'])->name('media.manager.upload');
     Route::post('media/folder', [MediaManagerController::class, 'newFolder'])->name('media.manager.new.folder');
+    Route::post('media/replace', [MediaManagerController::class, 'replace'])->name('media.manager.replace');
 }, withAuthenticate: true);

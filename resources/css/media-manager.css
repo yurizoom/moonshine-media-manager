@@ -407,6 +407,29 @@
     background-color: --alpha(var(--color-primary) / 0.05);
 }
 
+/* -- Replace modal: current file info -- */
+.mm-replace-current {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--color-base-stroke);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-base-50);
+}
+.mm-replace-label {
+    font-size: 0.8125rem;
+    opacity: 0.6;
+}
+.mm-replace-filename {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-base-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* -- Upload modal: dropzone + pending list -- */
 .mm-upload-dropzone {
     display: flex;
