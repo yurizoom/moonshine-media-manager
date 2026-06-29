@@ -7,7 +7,10 @@
     title="{{ __('moonshine-media-manager::media-manager.title') }}"
     :wide="true"
 >
-    <div x-data="mmBrowser({{ Js::from($urls) }})" x-ref="mmRoot">
+    <div x-data="mmBrowser({{ Js::from($urls) }})"
+         x-ref="mmRoot"
+         :class="{ 'mm-drag-active': isDragOver }"
+    >
 
         @include('moonshine-media-manager::partials.browser-toolbar')
 
@@ -24,7 +27,20 @@
 
         {{-- Selected files bar --}}
         <div x-show="$store.mm.hasSelection" x-cloak class="mb-4">
-            <div class="text-sm font-medium mb-2 text-gray-500">{{ __('moonshine-media-manager::media-manager.selected_files') }}</div>
+            <div class="mm-selected-header">
+                <span class="text-sm font-medium text-gray-500">
+                    {{ __('moonshine-media-manager::media-manager.selected_files') }}
+                    (<span x-text="$store.mm.selected.length"></span>)
+                </span>
+                <button type="button"
+                        @click.prevent="bulkDelete()"
+                        class="mm-selected-bulk-delete"
+                        title="{{ __('moonshine-media-manager::media-manager.delete') }}"
+                >
+                    <x-moonshine::icon icon="trash"/>
+                    {{ __('moonshine-media-manager::media-manager.delete') }}
+                </button>
+            </div>
             <div class="mm-selected-bar">
                 <template x-for="(file, idx) in $store.mm.selected" :key="file.path">
                     <div :style="{ cursor: selectedDragIdx === idx ? 'grabbing' : 'grab', opacity: selectedDragIdx === idx ? 0.4 : 1 }"
@@ -53,6 +69,8 @@
                             <div class="mm-preview">
                                 <img :src="file.url"
                                      :alt="file.path.split('/').pop()"
+                                     loading="lazy"
+                                     decoding="async"
                                      @@error="if(!brokenSelectedPaths.includes(file.path)) brokenSelectedPaths.push(file.path)"
                                 >
                             </div>

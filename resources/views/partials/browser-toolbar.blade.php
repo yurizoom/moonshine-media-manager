@@ -79,3 +79,63 @@
         </x-moonshine::link-button>
     </div>
 </div>
+
+<div class="mm-filters">
+    <div class="mm-search">
+        <x-moonshine::icon icon="magnifying-glass" class="mm-search-icon"/>
+        <input type="text"
+               x-model.debounce.300ms="searchQuery"
+               placeholder="{{ __('moonshine-media-manager::media-manager.search_placeholder') }}"
+               class="mm-search-input"
+        />
+        <button type="button"
+                x-show="searchQuery"
+                @click.prevent="searchQuery = ''"
+                class="mm-search-clear"
+                title="{{ __('moonshine-media-manager::media-manager.clear') }}"
+        >×</button>
+    </div>
+
+    <div class="mm-filter-chips">
+        <button type="button"
+                @click.prevent="typeFilter = 'all'"
+                :class="typeFilter === 'all' ? 'mm-chip mm-chip--active' : 'mm-chip'"
+        >{{ __('moonshine-media-manager::media-manager.filter_all') }}</button>
+        <button type="button"
+                @click.prevent="typeFilter = 'images'"
+                :class="typeFilter === 'images' ? 'mm-chip mm-chip--active' : 'mm-chip'"
+        >{{ __('moonshine-media-manager::media-manager.filter_images') }}</button>
+        <button type="button"
+                @click.prevent="typeFilter = 'documents'"
+                :class="typeFilter === 'documents' ? 'mm-chip mm-chip--active' : 'mm-chip'"
+        >{{ __('moonshine-media-manager::media-manager.filter_documents') }}</button>
+        <button type="button"
+                @click.prevent="typeFilter = 'video'"
+                :class="typeFilter === 'video' ? 'mm-chip mm-chip--active' : 'mm-chip'"
+        >{{ __('moonshine-media-manager::media-manager.filter_video') }}</button>
+        <button type="button"
+                @click.prevent="typeFilter = 'audio'"
+                :class="typeFilter === 'audio' ? 'mm-chip mm-chip--active' : 'mm-chip'"
+        >{{ __('moonshine-media-manager::media-manager.filter_audio') }}</button>
+        <button type="button"
+                @click.prevent="typeFilter = 'archives'"
+                :class="typeFilter === 'archives' ? 'mm-chip mm-chip--active' : 'mm-chip'"
+        >{{ __('moonshine-media-manager::media-manager.filter_archives') }}</button>
+    </div>
+
+    <div class="mm-sort">
+        <select x-model="sortField" class="mm-sort-select">
+            <option value="name">{{ __('moonshine-media-manager::media-manager.sort_name') }}</option>
+            <option value="date">{{ __('moonshine-media-manager::media-manager.sort_date') }}</option>
+            <option value="size">{{ __('moonshine-media-manager::media-manager.sort_size') }}</option>
+        </select>
+        <button type="button"
+                @click.prevent="sortDir = sortDir === 'asc' ? 'desc' : 'asc'"
+                class="mm-sort-toggle"
+                x-bind:title="sortDir === 'asc' ? '{{ __('moonshine-media-manager::media-manager.sort_asc') }}' : '{{ __('moonshine-media-manager::media-manager.sort_desc') }}'"
+        >
+            <x-moonshine::icon icon="arrow-up" x-show="sortDir === 'asc'"/>
+            <x-moonshine::icon icon="arrow-down" x-show="sortDir === 'desc'"/>
+        </button>
+    </div>
+</div>

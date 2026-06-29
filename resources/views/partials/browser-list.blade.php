@@ -7,7 +7,7 @@
 
 <div x-show="view === 'list' && !loading">
     <div class="mm-list-grid">
-        <template x-for="file in files" :key="file.path">
+        <template x-for="file in displayedFiles" :key="file.path">
             <div class="mm-list-item"
                  :class="{
                      'mm-list-item--dir': file.isDir,
@@ -41,7 +41,7 @@
                 </template>
                 <template x-if="!file.isDir && file.type === 'image'">
                     <div class="mm-list-preview">
-                        <img :src="file.url" :alt="basename(file.path)" />
+                        <img :src="file.url" :alt="basename(file.path)" loading="lazy" decoding="async"/>
                     </div>
                 </template>
                 <template x-if="!file.isDir && file.type !== 'image'">
@@ -85,6 +85,22 @@
                                     {{ __('moonshine-media-manager::media-manager.url') }}
                                 </x-moonshine::link-button>
                             @endif
+                            <x-moonshine::link-button
+                                    x-show="!file.isDir"
+                                    @click.stop.prevent="openReplaceModal(file)"
+                                    class="mm-list-dropdown-btn"
+                            >
+                                <x-moonshine::icon icon="arrow-path" class="mm-list-dropdown-icon"/>
+                                {{ __('moonshine-media-manager::media-manager.replace_action') }}
+                            </x-moonshine::link-button>
+                            <x-moonshine::link-button
+                                    x-show="!file.isDir"
+                                    @click.stop.prevent="openMoveModal(file)"
+                                    class="mm-list-dropdown-btn"
+                            >
+                                <x-moonshine::icon icon="folder-open" class="mm-list-dropdown-icon"/>
+                                {{ __('moonshine-media-manager::media-manager.move_action') }}
+                            </x-moonshine::link-button>
                             @foreach($mmFileActions as $actionName => $action)
                                 <x-moonshine::link-button
                                         x-show="{{ $action['x-show'] ?? 'true' }}"
