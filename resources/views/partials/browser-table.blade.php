@@ -42,7 +42,7 @@
                             </template>
                             <template x-if="!file.isDir && file.type === 'image'">
                                 <div class="mm-table-thumb">
-                                    <img :src="file.url" alt=""/>
+                                    <img :src="file.url" alt="" loading="lazy" decoding="async"/>
                                 </div>
                             </template>
                             <template x-if="!file.isDir && file.type !== 'image'">

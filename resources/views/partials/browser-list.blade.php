@@ -41,7 +41,7 @@
                 </template>
                 <template x-if="!file.isDir && file.type === 'image'">
                     <div class="mm-list-preview">
-                        <img :src="file.url" :alt="basename(file.path)" />
+                        <img :src="file.url" :alt="basename(file.path)" loading="lazy" decoding="async"/>
                     </div>
                 </template>
                 <template x-if="!file.isDir && file.type !== 'image'">
