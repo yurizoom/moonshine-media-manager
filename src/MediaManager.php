@@ -6,6 +6,7 @@ namespace YuriZoom\MoonShineMediaManager;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Local\LocalFilesystemAdapter;
 use MoonShine\Support\Enums\ToastType;
@@ -161,19 +162,35 @@ class MediaManager
 
             $safeName = URLGenerator::sanitizeFileName($file->getClientOriginalName());
 
-            if ($renameDuplicates) {
-                $safeName = $this->uniqueName($safeName);
-            }
+            $this->atomicUpload($file, $safeName, $renameDuplicates);
+        }
 
-            $path = rtrim($this->path, '/').'/'.$safeName;
-            $this->storage->putFileAs($this->path, $file, $safeName);
+        return true;
+    }
+
+    /**
+     * Acquire a per-path+filename lock so concurrent uploads of the same name
+     * can't both pass uniqueName() and end up overwriting each other.
+     */
+    private function atomicUpload(UploadedFile $file, string $safeName, bool $renameDuplicates): void
+    {
+        $lockKey = 'media-upload:'.md5($this->path.'/'.$safeName);
+
+        $upload = function () use ($file, $safeName, $renameDuplicates): void {
+            $finalName = $renameDuplicates ? $this->uniqueName($safeName) : $safeName;
+            $path = rtrim($this->path, '/').'/'.$finalName;
+            $this->storage->putFileAs($this->path, $file, $finalName);
 
             if (class_exists(MediaManagerFileUploaded::class)) {
                 MediaManagerFileUploaded::dispatch($path, $this->getDisk());
             }
-        }
+        };
 
-        return true;
+        try {
+            Cache::lock($lockKey, 10)->block(5, $upload);
+        } catch (\Illuminate\Contracts\Cache\LockTimeoutException) {
+            $upload();
+        }
     }
 
     /**

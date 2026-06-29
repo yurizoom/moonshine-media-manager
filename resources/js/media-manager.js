@@ -34,13 +34,27 @@ async function mmCheckUrlExists(url, cache, path, signal) {
     try {
         const resp = await fetch(url, { method: 'HEAD', cache: 'no-store', signal });
         const exists = resp.ok;
-        cache[path] = exists;
+        mmCacheSet(cache, path, exists);
         return exists;
     } catch {
         if (signal?.aborted) return false;
-        cache[path] = false;
+        mmCacheSet(cache, path, false);
         return false;
     }
+}
+
+const MM_EXISTS_CACHE_LIMIT = 200;
+
+function mmCacheSet(cache, key, value) {
+    const keys = Object.keys(cache);
+    if (keys.length >= MM_EXISTS_CACHE_LIMIT) {
+        // Evict oldest ~25% of entries to amortise the cost over many insertions.
+        const evictCount = Math.max(1, Math.floor(MM_EXISTS_CACHE_LIMIT * 0.25));
+        for (let i = 0; i < evictCount; i++) {
+            delete cache[keys[i]];
+        }
+    }
+    cache[key] = value;
 }
 
 document.addEventListener('alpine:init', () => {
@@ -253,6 +267,8 @@ document.addEventListener('alpine:init', () => {
         sortDir: 'asc',
 
         isDragOver: false,
+
+        isSubmitting: false,
 
         init() {
             this.$nextTick(() => this.loadFiles('/'));
@@ -766,6 +782,8 @@ document.addEventListener('alpine:init', () => {
         },
 
         async submitMove() {
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
             try {
                 const params = new URLSearchParams({
                     path: this.movePath,
@@ -801,6 +819,8 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 this.formError = e.message || 'Move failed';
+            } finally {
+                this.isSubmitting = false;
             }
         },
 
@@ -827,15 +847,16 @@ document.addEventListener('alpine:init', () => {
         },
 
         async submitReplace() {
+            if (this.isSubmitting) return;
             if (! this.pendingReplace) {
                 return;
             }
-
-            const formData = new FormData();
-            formData.append('path', this.replacePath);
-            formData.append('file', this.pendingReplace.file);
-
+            this.isSubmitting = true;
             try {
+                const formData = new FormData();
+                formData.append('path', this.replacePath);
+                formData.append('file', this.pendingReplace.file);
+
                 const response = await fetch(this.urls.replace, {
                     method: 'POST',
                     body: formData,
@@ -845,7 +866,6 @@ document.addEventListener('alpine:init', () => {
 
                 if (data.status) {
                     Alpine.store('mm').invalidateExistsCache(this.replacePath);
-                    // Bust cache for selected items in offcanvas so their preview refetches.
                     const newVersion = Date.now();
                     Alpine.store('mm').selected.forEach((item) => {
                         if (item.path === this.replacePath) {
@@ -853,7 +873,6 @@ document.addEventListener('alpine:init', () => {
                             item.url = cleanUrl + '?v=' + newVersion;
                         }
                     });
-                    // Notify picker fields to bump their own preview version.
                     window.dispatchEvent(new CustomEvent('mm:replaced', { detail: { path: this.replacePath } }));
                     this.toast(data.message || 'Replaced', 'success');
                     this.clearReplaceFile();
@@ -865,12 +884,24 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 this.formError = e.message || 'Replace failed';
+            } finally {
+                this.isSubmitting = false;
             }
         },
 
         // -- Submit handlers --
 
         async submitUpload(fileList = null) {
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
+            try {
+                await this._doUpload(fileList);
+            } finally {
+                this.isSubmitting = false;
+            }
+        },
+
+        async _doUpload(fileList) {
             const isDirectDrop = fileList !== null;
             const input = isDirectDrop ? null : document.getElementById(this.modalPrefix + 'upload-input');
             const files = isDirectDrop ? fileList : this.pendingUploads.map((p) => p.file);
@@ -958,10 +989,11 @@ document.addEventListener('alpine:init', () => {
         },
 
         async submitDelete() {
+            if (this.isSubmitting) return;
             if (! this.deleteFiles.length) {
                 return;
             }
-
+            this.isSubmitting = true;
             try {
                 const params = new URLSearchParams();
                 this.deleteFiles.forEach(f => params.append('files[]', f));
@@ -991,10 +1023,14 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 this.formError = e.message || 'Delete failed';
+            } finally {
+                this.isSubmitting = false;
             }
         },
 
         async submitRename() {
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
             try {
                 const params = new URLSearchParams({
                     path: this.renamePath,
@@ -1022,10 +1058,14 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 this.formError = e.message || 'Rename failed';
+            } finally {
+                this.isSubmitting = false;
             }
         },
 
         async submitNewFolder() {
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
             try {
                 const params = new URLSearchParams({
                     dir: this.path,
@@ -1053,6 +1093,8 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (e) {
                 this.formError = e.message || 'Failed to create folder';
+            } finally {
+                this.isSubmitting = false;
             }
         },
 

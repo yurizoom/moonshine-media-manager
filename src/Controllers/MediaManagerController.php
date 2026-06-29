@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace YuriZoom\MoonShineMediaManager\Controllers;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
 use MoonShine\Contracts\Core\DependencyInjection\CrudRequestContract as MoonShineRequest;
 use MoonShine\Laravel\Http\Controllers\MoonShineController;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -14,8 +15,18 @@ use YuriZoom\MoonShineMediaManager\MediaManager;
 
 final class MediaManagerController extends MoonShineController
 {
+    private function authorizeAction(): void
+    {
+        $ability = config('moonshine.media_manager.ability');
+
+        if ($ability) {
+            Gate::authorize($ability);
+        }
+    }
+
     public function index(MoonShineRequest $request): JsonResponse
     {
+        $this->authorizeAction();
         $path = $request->get('path', '/');
         $view = $request->get('view', config('moonshine.media_manager.default_view', 'table'));
         $types = $request->get('types', []);
@@ -59,6 +70,7 @@ final class MediaManagerController extends MoonShineController
 
     public function download(MoonShineRequest $request): JsonResponse|StreamedResponse
     {
+        $this->authorizeAction();
         try {
             return (new MediaManager((string) $request->get('file', '/')))->download();
         } catch (Throwable $e) {
@@ -68,6 +80,7 @@ final class MediaManagerController extends MoonShineController
 
     public function upload(MoonShineRequest $request): JsonResponse
     {
+        $this->authorizeAction();
         $manager = new MediaManager((string) $request->get('dir', '/'));
 
         try {
@@ -91,6 +104,7 @@ final class MediaManagerController extends MoonShineController
 
     public function delete(MoonShineRequest $request): JsonResponse
     {
+        $this->authorizeAction();
         try {
             (new MediaManager)->delete($request->get('files'));
         } catch (Throwable $e) {
@@ -105,6 +119,7 @@ final class MediaManagerController extends MoonShineController
 
     public function move(MoonShineRequest $request): JsonResponse
     {
+        $this->authorizeAction();
         try {
             (new MediaManager((string) $request->get('path', '/')))->move((string) $request->get('new', ''));
         } catch (Throwable $e) {
@@ -119,6 +134,7 @@ final class MediaManagerController extends MoonShineController
 
     public function newFolder(MoonShineRequest $request): JsonResponse
     {
+        $this->authorizeAction();
         try {
             (new MediaManager((string) $request->get('dir', '/')))->newFolder((string) $request->get('name', ''));
         } catch (Throwable $e) {
@@ -133,6 +149,7 @@ final class MediaManagerController extends MoonShineController
 
     public function replace(MoonShineRequest $request): JsonResponse
     {
+        $this->authorizeAction();
         $path = (string) $request->get('path', '/');
         $file = $request->file('file');
 

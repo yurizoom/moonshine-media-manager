@@ -48,7 +48,7 @@
 
             <div x-show="formError" x-cloak class="mm-form-error" x-text="formError"></div>
 
-            <x-moonshine::form.button type="submit">
+            <x-moonshine::form.button type="submit" x-bind:disabled="isSubmitting">
                 {{ __('moonshine-media-manager::media-manager.upload') }}
                 (<span x-text="pendingUploads.length"></span>)
             </x-moonshine::form.button>
@@ -61,7 +61,7 @@
         <div class="mm-modal-form">
             <x-moonshine::form.input x-model="renameNew" @input="formError = ''" placeholder="{{ __('moonshine-media-manager::media-manager.new_path') }}" />
             <div x-show="formError" x-cloak class="mm-form-error" x-text="formError"></div>
-            <x-moonshine::form.button type="submit">
+            <x-moonshine::form.button type="submit" x-bind:disabled="isSubmitting">
                 {{ __('moonshine-media-manager::media-manager.submit') }}
             </x-moonshine::form.button>
         </div>
@@ -73,7 +73,7 @@
         <div class="mm-modal-form">
             <x-moonshine::form.input x-model="newFolderName" @input="formError = ''" placeholder="{{ __('moonshine-media-manager::media-manager.name') }}" />
             <div x-show="formError" x-cloak class="mm-form-error" x-text="formError"></div>
-            <x-moonshine::form.button type="submit">
+            <x-moonshine::form.button type="submit" x-bind:disabled="isSubmitting">
                 {{ __('moonshine-media-manager::media-manager.submit') }}
             </x-moonshine::form.button>
         </div>
@@ -88,7 +88,7 @@
             <x-moonshine::form.button @click.stop.prevent="window.MoonShine?.ui?.toggleModal(modalPrefix + 'delete')" class="btn-secondary">
                 {{ __('moonshine-media-manager::media-manager.close') }}
             </x-moonshine::form.button>
-            <x-moonshine::form.button @click.stop.prevent="submitDelete()" class="btn-error">
+            <x-moonshine::form.button @click.stop.prevent="submitDelete()" class="btn-error" x-bind:disabled="isSubmitting">
                 {{ __('moonshine-media-manager::media-manager.delete') }}
             </x-moonshine::form.button>
         </div>
@@ -170,7 +170,7 @@
             <x-moonshine::form.button @click.stop.prevent="window.MoonShine?.ui?.toggleModal(modalPrefix + 'move')" class="btn-secondary">
                 {{ __('moonshine-media-manager::media-manager.close') }}
             </x-moonshine::form.button>
-            <x-moonshine::form.button @click.stop.prevent="submitMove()" class="btn-primary">
+            <x-moonshine::form.button @click.stop.prevent="submitMove()" class="btn-primary" x-bind:disabled="isSubmitting">
                 {{ __('moonshine-media-manager::media-manager.move_here') }}
             </x-moonshine::form.button>
         </div>
@@ -223,7 +223,7 @@
             <x-moonshine::form.button @click.stop.prevent="window.MoonShine?.ui?.toggleModal(modalPrefix + 'replace')" class="btn-secondary">
                 {{ __('moonshine-media-manager::media-manager.close') }}
             </x-moonshine::form.button>
-            <x-moonshine::form.button @click.stop.prevent="submitReplace()" class="btn-warning">
+            <x-moonshine::form.button @click.stop.prevent="submitReplace()" class="btn-warning" x-bind:disabled="isSubmitting">
                 {{ __('moonshine-media-manager::media-manager.replace_action') }}
             </x-moonshine::form.button>
         </div>
