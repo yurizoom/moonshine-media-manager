@@ -114,8 +114,26 @@ class MediaManager
 
     public function move(string $new): bool
     {
+        if (trim($new) === '' || $new === '/') {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.enter_name')
+            );
+        }
+
         $safeNew = URLGenerator::sanitizePath($new);
         MediaSecurity::assertNotBlockedPath($safeNew);
+
+        if ($safeNew === $this->path) {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.same_path')
+            );
+        }
+
+        if ($this->storage->fileExists($safeNew) || $this->storage->directoryExists($safeNew)) {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.already_exists', ['name' => $safeNew])
+            );
+        }
 
         return $this->storage->move($this->path, $safeNew);
     }
@@ -123,7 +141,9 @@ class MediaManager
     public function upload(array $files = []): bool
     {
         if ($files === []) {
-            return true;
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.select_file')
+            );
         }
 
         $maxFileSize = config('moonshine.media_manager.max_file_size', 10 * 1024 * 1024);
@@ -185,8 +205,20 @@ class MediaManager
 
     public function newFolder(string $name): bool
     {
+        if (trim($name) === '') {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.enter_name')
+            );
+        }
+
         $safeName = URLGenerator::sanitizeFileName($name);
         $path = rtrim($this->path, '/').'/'.$safeName;
+
+        if ($this->storage->directoryExists($path)) {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.folder_already_exists', ['name' => $safeName])
+            );
+        }
 
         return $this->storage->makeDirectory($path);
     }
