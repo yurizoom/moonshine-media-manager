@@ -3,6 +3,8 @@
 return [
     'refresh' => 'Refresh',
     'upload' => 'Upload',
+    'upload_choose' => 'Click to choose files',
+    'upload_hint' => 'You can select multiple files',
     'new_folder' => 'New folder',
     'submit' => 'Submit',
     'download' => 'Download',

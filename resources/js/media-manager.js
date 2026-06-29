@@ -234,11 +234,15 @@ document.addEventListener('alpine:init', () => {
 
         formError: '',
 
+        pendingUploads: [],
+
         // -- Search / filter / sort --
         searchQuery: '',
         typeFilter: 'all',
         sortField: 'name',
         sortDir: 'asc',
+
+        isDragOver: false,
 
         init() {
             this.$nextTick(() => this.loadFiles('/'));
@@ -246,6 +250,48 @@ document.addEventListener('alpine:init', () => {
             const refreshHandler = () => this.refresh();
             window.addEventListener('mm:refresh', refreshHandler);
             this.$cleanup?.(() => window.removeEventListener('mm:refresh', refreshHandler));
+
+            // Window-level handlers so files dropped anywhere trigger upload (not only inside our root).
+            // Gated on Files type so we don't break drag-drop of text/images between other elements.
+            this._onDragOver = (e) => {
+                if (e.dataTransfer?.types?.includes('Files')) {
+                    e.preventDefault();
+                }
+            };
+            this._onDragEnter = (e) => {
+                if (! e.dataTransfer?.types?.includes('Files')) return;
+                this.dragCounter++;
+                this.isDragOver = true;
+            };
+            this._onDragLeave = () => {
+                if (this.dragCounter <= 0) return;
+                this.dragCounter--;
+                if (this.dragCounter <= 0) {
+                    this.isDragOver = false;
+                    this.dragCounter = 0;
+                }
+            };
+            this._onDrop = async (e) => {
+                if (! e.dataTransfer?.types?.includes('Files')) return;
+                e.preventDefault();
+                this.dragCounter = 0;
+                this.isDragOver = false;
+                const files = Array.from(e.dataTransfer?.files ?? []);
+                if (! files.length) return;
+                await this.submitUpload(files);
+            };
+
+            window.addEventListener('dragover', this._onDragOver, false);
+            window.addEventListener('dragenter', this._onDragEnter, false);
+            window.addEventListener('dragleave', this._onDragLeave, false);
+            window.addEventListener('drop', this._onDrop, false);
+
+            this.$cleanup?.(() => {
+                window.removeEventListener('dragover', this._onDragOver);
+                window.removeEventListener('dragenter', this._onDragEnter);
+                window.removeEventListener('dragleave', this._onDragLeave);
+                window.removeEventListener('drop', this._onDrop);
+            });
 
             this.$watch('$store.mm.isOpen', (open) => {
                 if (open) {
@@ -612,6 +658,10 @@ document.addEventListener('alpine:init', () => {
 
         openUploadModal() {
             this.formError = '';
+            this.pendingUploads.forEach((p) => {
+                if (p.preview) URL.revokeObjectURL(p.preview);
+            });
+            this.pendingUploads = [];
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
         },
 
@@ -634,6 +684,16 @@ document.addEventListener('alpine:init', () => {
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');
         },
 
+        bulkDelete() {
+            const paths = Alpine.store('mm').selected.map(f => f.path);
+            if (! paths.length) {
+                return;
+            }
+            this.formError = '';
+            this.deleteFiles = paths;
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');
+        },
+
         openUrlModal(file) {
             this.urlToShow = file.url || '';
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'url');
@@ -646,11 +706,13 @@ document.addEventListener('alpine:init', () => {
 
         // -- Submit handlers --
 
-        async submitUpload() {
-            const input = document.getElementById(this.modalPrefix + 'upload-input');
+        async submitUpload(fileList = null) {
+            const isDirectDrop = fileList !== null;
+            const input = isDirectDrop ? null : document.getElementById(this.modalPrefix + 'upload-input');
+            const files = isDirectDrop ? fileList : this.pendingUploads.map((p) => p.file);
 
             const formData = new FormData();
-            for (const f of (input?.files ?? [])) {
+            for (const f of files) {
                 formData.append('files[]', f);
             }
             formData.append('dir', this.path);
@@ -666,15 +728,69 @@ document.addEventListener('alpine:init', () => {
                 if (data.status) {
                     this.toast(data.message || 'Uploaded', 'success');
                     this.formError = '';
-                    window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
-                    input.value = '';
+                    if (! isDirectDrop) {
+                        this.pendingUploads.forEach((p) => {
+                            if (p.preview) URL.revokeObjectURL(p.preview);
+                        });
+                        this.pendingUploads = [];
+                        if (input) input.value = '';
+                        window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
+                    }
                     this.refresh();
                 } else {
                     this.formError = data.message || 'Upload failed';
+                    if (isDirectDrop) {
+                        this.toast(data.message || 'Upload failed', 'error');
+                    }
                 }
             } catch (e) {
                 this.formError = e.message || 'Upload failed';
+                if (isDirectDrop) {
+                    this.toast(e.message || 'Upload failed', 'error');
+                }
             }
+        },
+
+        addPendingFiles(fileList) {
+            for (const f of Array.from(fileList ?? [])) {
+                const isImage = mmIsImageUrl(f.name);
+                this.pendingUploads.push({
+                    id: Math.random().toString(36).slice(2),
+                    file: f,
+                    name: f.name,
+                    size: f.size,
+                    isImage,
+                    preview: isImage ? URL.createObjectURL(f) : '',
+                });
+            }
+        },
+
+        removePendingUpload(id) {
+            const item = this.pendingUploads.find((p) => p.id === id);
+            if (item?.preview) {
+                URL.revokeObjectURL(item.preview);
+            }
+            this.pendingUploads = this.pendingUploads.filter((p) => p.id !== id);
+        },
+
+        formatBytes(bytes) {
+            if (! bytes) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+        },
+
+        isDragOver: false,
+        dragCounter: 0,
+
+        async handleDrop(event) {
+            this.dragCounter = 0;
+            this.isDragOver = false;
+            const files = Array.from(event?.dataTransfer?.files ?? []);
+            if (! files.length) {
+                return;
+            }
+            await this.submitUpload(files);
         },
 
         async submitDelete() {
@@ -698,6 +814,9 @@ document.addEventListener('alpine:init', () => {
 
                 if (data.status) {
                     Alpine.store('mm').invalidateExistsCache(...this.deleteFiles);
+                    Alpine.store('mm').selected = Alpine.store('mm').selected.filter(
+                        f => ! this.deleteFiles.includes(f.path)
+                    );
                     this.toast(data.message || 'Deleted', 'success');
                     this.formError = '';
                     window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');

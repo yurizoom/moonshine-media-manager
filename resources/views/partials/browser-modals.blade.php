@@ -10,10 +10,47 @@
 <x-moonshine::modal name="{{ $modalPrefix }}upload" title="{{ __('moonshine-media-manager::media-manager.upload') }}" :closeOutside="false">
     <form @submit.prevent="submitUpload()">
         <div class="mm-modal-form">
-            <input type="file" id="{{ $modalPrefix }}upload-input" name="files[]" multiple class="file-input" @change="formError = ''"/>
+            <label class="mm-upload-dropzone" for="{{ $modalPrefix }}upload-input">
+                <x-moonshine::icon icon="cloud-arrow-up" class="mm-upload-dropzone-icon"/>
+                <span class="mm-upload-dropzone-text">{{ __('moonshine-media-manager::media-manager.upload_choose') }}</span>
+                <span class="mm-upload-dropzone-hint">{{ __('moonshine-media-manager::media-manager.upload_hint') }}</span>
+                <input type="file"
+                       id="{{ $modalPrefix }}upload-input"
+                       class="mm-upload-input"
+                       multiple
+                       @change="addPendingFiles($event.target.files); $event.target.value = ''"
+                />
+            </label>
+
+            <div x-show="pendingUploads.length" x-cloak class="mm-upload-list">
+                <template x-for="item in pendingUploads" :key="item.id">
+                    <div class="mm-upload-item">
+                        <div class="mm-upload-thumb">
+                            <template x-if="item.isImage && item.preview">
+                                <img :src="item.preview" alt="" loading="lazy"/>
+                            </template>
+                            <template x-if="!item.isImage">
+                                <x-moonshine::icon icon="document" class="mm-upload-thumb-icon"/>
+                            </template>
+                        </div>
+                        <div class="mm-upload-info">
+                            <span class="mm-upload-name" x-text="item.name"></span>
+                            <span class="mm-upload-size" x-text="formatBytes(item.size)"></span>
+                        </div>
+                        <button type="button"
+                                @click.prevent="removePendingUpload(item.id)"
+                                class="mm-upload-remove"
+                                title="{{ __('moonshine-media-manager::media-manager.remove') }}"
+                        >×</button>
+                    </div>
+                </template>
+            </div>
+
             <div x-show="formError" x-cloak class="mm-form-error" x-text="formError"></div>
+
             <x-moonshine::form.button type="submit">
-                {{ __('moonshine-media-manager::media-manager.submit') }}
+                {{ __('moonshine-media-manager::media-manager.upload') }}
+                (<span x-text="pendingUploads.length"></span>)
             </x-moonshine::form.button>
         </div>
     </form>

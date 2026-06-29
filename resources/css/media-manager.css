@@ -33,6 +33,28 @@
     background: rgba(var(--mm-color-primary-rgb), 0.1);
     border-radius: 8px;
 }
+.mm-selected-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.mm-selected-bulk-delete {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--color-error);
+    border-radius: var(--radius-lg);
+    background: transparent;
+    color: var(--color-error);
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+.mm-selected-bulk-delete:hover {
+    background-color: --alpha(var(--color-error) / 0.1);
+}
 .mm-selected-item {
     position: relative;
     display: flex;
@@ -356,15 +378,16 @@
     z-index: 50;
     width: 40px;
     height: 40px;
-    border-radius: 50%;
     border: none;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: var(--color-primary-text);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--mm-color-primary);
-    color: #fff;
-    box-shadow: 0 2px 10px rgba(0,0,0,.25);
+    transition: opacity 0.15s;
 }
 .mm-scroll-top-btn:hover {
     opacity: .85;
@@ -374,6 +397,136 @@
 .mm-form-error {
     font-size: 0.875rem;
     color: var(--color-error);
+}
+
+/* -- Drag-and-drop active state -- */
+.mm-drag-active {
+    outline: 2px dashed var(--color-primary);
+    outline-offset: -8px;
+    border-radius: var(--radius-lg);
+    background-color: --alpha(var(--color-primary) / 0.05);
+}
+
+/* -- Upload modal: dropzone + pending list -- */
+.mm-upload-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 1.5rem 1rem;
+    border: 2px dashed var(--color-base-stroke);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-base-50);
+    color: var(--color-base-text);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+.mm-upload-dropzone:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+.mm-upload-dropzone-icon {
+    width: 2rem;
+    height: 2rem;
+    opacity: 0.6;
+}
+.mm-upload-dropzone-text {
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+.mm-upload-dropzone-hint {
+    font-size: 0.8125rem;
+    opacity: 0.6;
+}
+.mm-upload-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.mm-upload-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    max-height: 280px;
+    overflow-y: auto;
+}
+.mm-upload-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem;
+    border: 1px solid var(--color-base-stroke);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-base);
+}
+.mm-upload-thumb {
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background-color: var(--color-base-100);
+}
+.mm-upload-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.mm-upload-thumb-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    opacity: 0.5;
+}
+.mm-upload-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+.mm-upload-name {
+    font-size: 0.875rem;
+    color: var(--color-base-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mm-upload-size {
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+.mm-upload-remove {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: transparent;
+    color: var(--color-base-text);
+    opacity: 0.5;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.mm-upload-remove:hover {
+    opacity: 1;
+    color: var(--color-error);
+    background-color: --alpha(var(--color-error) / 0.1);
 }
 
 /* -- Search / filter / sort bar -- */
