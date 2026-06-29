@@ -234,6 +234,12 @@ document.addEventListener('alpine:init', () => {
 
         formError: '',
 
+        // -- Search / filter / sort --
+        searchQuery: '',
+        typeFilter: 'all',
+        sortField: 'name',
+        sortDir: 'asc',
+
         init() {
             this.$nextTick(() => this.loadFiles('/'));
 
@@ -501,6 +507,64 @@ document.addEventListener('alpine:init', () => {
         },
 
         isImageUrl: mmIsImageUrl,
+
+        /**
+         * Files after search + type filter + sort are applied.
+         * Folders always pass the type filter (so navigation works during search).
+         * @returns {Array}
+         */
+        get displayedFiles() {
+            const q = this.searchQuery.trim().toLowerCase();
+            const typeMap = {
+                images: ['image'],
+                documents: ['word', 'excel', 'ppt', 'pdf', 'text', 'code'],
+                video: ['video'],
+                audio: ['audio'],
+                archives: ['archive'],
+            };
+            const allowedTypes = this.typeFilter !== 'all' ? (typeMap[this.typeFilter] || []) : null;
+
+            let list = this.files.filter((f) => {
+                if (q && ! this.basename(f.path).toLowerCase().includes(q)) {
+                    return false;
+                }
+                if (allowedTypes && ! f.isDir && ! allowedTypes.includes(f.type)) {
+                    return false;
+                }
+                return true;
+            });
+
+            const dir = this.sortDir === 'desc' ? -1 : 1;
+            const field = this.sortField;
+
+            return list.slice().sort((a, b) => {
+                if (a.isDir !== b.isDir) {
+                    return a.isDir ? -1 : 1;
+                }
+                let av;
+                let bv;
+                if (field === 'name') {
+                    av = this.basename(a.path).toLowerCase();
+                    bv = this.basename(b.path).toLowerCase();
+                } else if (field === 'date') {
+                    av = a.timeRaw ?? 0;
+                    bv = b.timeRaw ?? 0;
+                } else if (field === 'size') {
+                    av = a.sizeBytes ?? 0;
+                    bv = b.sizeBytes ?? 0;
+                }
+                if (av < bv) return -1 * dir;
+                if (av > bv) return 1 * dir;
+                return 0;
+            });
+        },
+
+        clearFilters() {
+            this.searchQuery = '';
+            this.typeFilter = 'all';
+            this.sortField = 'name';
+            this.sortDir = 'asc';
+        },
 
         /**
          * Check which selected files are broken (404).

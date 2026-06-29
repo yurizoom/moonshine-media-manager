@@ -7,7 +7,7 @@
 
 <div x-show="view === 'list' && !loading">
     <div class="mm-list-grid">
-        <template x-for="file in files" :key="file.path">
+        <template x-for="file in displayedFiles" :key="file.path">
             <div class="mm-list-item"
                  :class="{
                      'mm-list-item--dir': file.isDir,
