@@ -230,6 +230,9 @@ document.addEventListener('alpine:init', () => {
         deleteFiles: [],
         urlToShow: '',
         newFolderName: '',
+        imagePreviewSrc: '',
+
+        formError: '',
 
         init() {
             this.$nextTick(() => this.loadFiles('/'));
@@ -294,19 +297,21 @@ document.addEventListener('alpine:init', () => {
         },
 
         /**
-         * Parse JSON or throw on non-2xx (avoids cryptic "Unexpected token" on HTML error pages).
+         * Parse JSON or throw on non-JSON responses (avoids cryptic "Unexpected token" on HTML error pages).
          * @param {Response} response
          * @returns {Promise<any>}
          */
         async _parseJsonResponse(response) {
-            if (! response.ok) {
+            const text = await response.text();
+
+            try {
+                return JSON.parse(text);
+            } catch (e) {
                 if (response.status === 401 || response.status === 419) {
                     throw new Error('Session expired. Please reload the page.');
                 }
                 throw new Error(`Request failed (HTTP ${response.status})`);
             }
-
-            return response.json();
         },
 
         /**
@@ -542,21 +547,25 @@ document.addEventListener('alpine:init', () => {
         // -- Modal triggers --
 
         openUploadModal() {
+            this.formError = '';
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
         },
 
         openNewFolderModal() {
+            this.formError = '';
             this.newFolderName = '';
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'new-folder');
         },
 
         openRenameModal(file) {
+            this.formError = '';
             this.renamePath = file.path;
             this.renameNew = file.path;
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'rename');
         },
 
         openDeleteModal(file) {
+            this.formError = '';
             this.deleteFiles = [file.path];
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');
         },
@@ -566,16 +575,18 @@ document.addEventListener('alpine:init', () => {
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'url');
         },
 
+        openImagePreview(file) {
+            this.imagePreviewSrc = file.url || '';
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'image-preview');
+        },
+
         // -- Submit handlers --
 
         async submitUpload() {
             const input = document.getElementById(this.modalPrefix + 'upload-input');
-            if (!input?.files.length) {
-                return;
-            }
 
             const formData = new FormData();
-            for (const f of input.files) {
+            for (const f of (input?.files ?? [])) {
                 formData.append('files[]', f);
             }
             formData.append('dir', this.path);
@@ -590,19 +601,20 @@ document.addEventListener('alpine:init', () => {
 
                 if (data.status) {
                     this.toast(data.message || 'Uploaded', 'success');
+                    this.formError = '';
                     window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
                     input.value = '';
                     this.refresh();
                 } else {
-                    this.toast(data.message || 'Upload failed', 'error');
+                    this.formError = data.message || 'Upload failed';
                 }
             } catch (e) {
-                this.toast(e.message || 'Upload failed', 'error');
+                this.formError = e.message || 'Upload failed';
             }
         },
 
         async submitDelete() {
-            if (!this.deleteFiles.length) {
+            if (! this.deleteFiles.length) {
                 return;
             }
 
@@ -623,22 +635,19 @@ document.addEventListener('alpine:init', () => {
                 if (data.status) {
                     Alpine.store('mm').invalidateExistsCache(...this.deleteFiles);
                     this.toast(data.message || 'Deleted', 'success');
+                    this.formError = '';
                     window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');
                     this.deleteFiles = [];
                     this.refresh();
                 } else {
-                    this.toast(data.message || 'Delete failed', 'error');
+                    this.formError = data.message || 'Delete failed';
                 }
             } catch (e) {
-                this.toast(e.message || 'Delete failed', 'error');
+                this.formError = e.message || 'Delete failed';
             }
         },
 
         async submitRename() {
-            if (!this.renameNew.trim()) {
-                return;
-            }
-
             try {
                 const params = new URLSearchParams({
                     path: this.renamePath,
@@ -658,21 +667,18 @@ document.addEventListener('alpine:init', () => {
                 if (data.status) {
                     Alpine.store('mm').invalidateExistsCache(this.renamePath, this.renameNew);
                     this.toast(data.message || 'Renamed', 'success');
+                    this.formError = '';
                     window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'rename');
                     this.refresh();
                 } else {
-                    this.toast(data.message || 'Rename failed', 'error');
+                    this.formError = data.message || 'Rename failed';
                 }
             } catch (e) {
-                this.toast(e.message || 'Rename failed', 'error');
+                this.formError = e.message || 'Rename failed';
             }
         },
 
         async submitNewFolder() {
-            if (!this.newFolderName.trim()) {
-                return;
-            }
-
             try {
                 const params = new URLSearchParams({
                     dir: this.path,
@@ -691,14 +697,15 @@ document.addEventListener('alpine:init', () => {
 
                 if (data.status) {
                     this.toast(data.message || 'Folder created', 'success');
+                    this.formError = '';
                     window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'new-folder');
                     this.newFolderName = '';
                     this.refresh();
                 } else {
-                    this.toast(data.message || 'Failed to create folder', 'error');
+                    this.formError = data.message || 'Failed to create folder';
                 }
             } catch (e) {
-                this.toast(e.message || 'Failed to create folder', 'error');
+                this.formError = e.message || 'Failed to create folder';
             }
         },
 
