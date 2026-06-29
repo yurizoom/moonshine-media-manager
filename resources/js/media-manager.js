@@ -237,6 +237,11 @@ document.addEventListener('alpine:init', () => {
         replacePreview: '',
         pendingReplace: null,
 
+        movePath: '',
+        moveBrowserPath: '/',
+        moveBrowserFolders: [],
+        moveBrowserLoading: false,
+
         formError: '',
 
         pendingUploads: [],
@@ -719,6 +724,84 @@ document.addEventListener('alpine:init', () => {
             }
             this.pendingReplace = null;
             window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'replace');
+        },
+
+        openMoveModal(file) {
+            this.formError = '';
+            this.movePath = file.path;
+            this.moveBrowserPath = '/';
+            this.moveBrowserFolders = [];
+            window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'move');
+            this.loadMoveFolders('/');
+        },
+
+        moveBrowserUp() {
+            const parts = this.moveBrowserPath.split('/').filter(Boolean);
+            parts.pop();
+            this.loadMoveFolders('/' + parts.join('/'));
+        },
+
+        async loadMoveFolders(path) {
+            path = path || '/';
+            this.moveBrowserLoading = true;
+            try {
+                const params = new URLSearchParams({ path, view: this.view });
+                const response = await fetch(this.urls.index + '?' + params.toString(), {
+                    headers: this.ajaxHeaders,
+                });
+                const data = await this._parseJsonResponse(response);
+                if (data.status) {
+                    this.moveBrowserFolders = (data.files || []).filter((f) => f.isDir);
+                    this.moveBrowserPath = data.path;
+                }
+            } catch (e) {
+            }
+            this.moveBrowserLoading = false;
+        },
+
+        get moveDestinationPath() {
+            const filename = this.basename(this.movePath);
+            const base = this.moveBrowserPath === '/' ? '' : this.moveBrowserPath;
+            return base + '/' + filename;
+        },
+
+        async submitMove() {
+            try {
+                const params = new URLSearchParams({
+                    path: this.movePath,
+                    new: this.moveDestinationPath,
+                });
+                const response = await fetch(this.urls.move, {
+                    method: 'POST',
+                    body: params,
+                    headers: {
+                        ...this.ajaxHeaders,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                });
+                const data = await this._parseJsonResponse(response);
+                if (data.status) {
+                    Alpine.store('mm').invalidateExistsCache(this.movePath, this.moveDestinationPath);
+                    const newVersion = Date.now();
+                    Alpine.store('mm').selected.forEach((item) => {
+                        if (item.path === this.movePath) {
+                            item.path = this.moveDestinationPath;
+                            const cleanUrl = (item.url || '').split('?')[0];
+                            const cleanUrlNoCache = cleanUrl.replace(/\/[^/]+$/, '/' + this.basename(this.moveDestinationPath));
+                            item.url = cleanUrlNoCache + '?v=' + newVersion;
+                        }
+                    });
+                    window.dispatchEvent(new CustomEvent('mm:replaced', { detail: { path: this.moveDestinationPath } }));
+                    this.toast(data.message || 'Moved', 'success');
+                    this.formError = '';
+                    window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'move');
+                    this.refresh();
+                } else {
+                    this.formError = data.message || 'Move failed';
+                }
+            } catch (e) {
+                this.formError = e.message || 'Move failed';
+            }
         },
 
         addReplaceFile(fileList) {

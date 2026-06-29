@@ -119,8 +119,65 @@
     </div>
 </x-moonshine::modal>
 
-<x-moonshine::modal name="{{ $modalPrefix }}replace" title="{{ __('moonshine-media-manager::media-manager.replace_action') }}" :closeOutside="false">
+<x-moonshine::modal name="{{ $modalPrefix }}move" title="{{ __('moonshine-media-manager::media-manager.move_action') }}" :closeOutside="false">
     <div class="mm-modal-form">
+        <div class="mm-replace-current">
+            <span class="mm-replace-label">{{ __('moonshine-media-manager::media-manager.move_file_label') }}:</span>
+            <span class="mm-replace-filename" x-text="basename(movePath)"></span>
+        </div>
+
+        <div class="mm-move-browser">
+            <div class="mm-move-path">
+                <button type="button"
+                        x-show="moveBrowserPath !== '/'"
+                        @click.prevent="moveBrowserUp()"
+                        class="mm-move-up"
+                        title="{{ __('moonshine-media-manager::media-manager.move_up') }}"
+                >
+                    <x-moonshine::icon icon="arrow-small-left"/>
+                </button>
+                <span class="mm-move-path-text" x-text="moveBrowserPath"></span>
+            </div>
+
+            <div class="mm-move-list">
+                <template x-for="folder in moveBrowserFolders" :key="folder.path">
+                    <button type="button"
+                            class="mm-move-folder"
+                            @click.prevent="loadMoveFolders(folder.path)"
+                            :class="{ 'mm-move-folder--active': folder.path === moveBrowserPath }"
+                    >
+                        <x-moonshine::icon icon="folder"/>
+                        <span x-text="basename(folder.path)"></span>
+                    </button>
+                </template>
+                <div x-show="! moveBrowserFolders.length && ! moveBrowserLoading" class="mm-move-empty">
+                    {{ __('moonshine-media-manager::media-manager.move_no_subfolders') }}
+                </div>
+                <div x-show="moveBrowserLoading" class="mm-move-empty">
+                    <x-moonshine::loader/>
+                </div>
+            </div>
+        </div>
+
+        <div class="mm-replace-current">
+            <span class="mm-replace-label">{{ __('moonshine-media-manager::media-manager.move_destination') }}:</span>
+            <span class="mm-replace-filename" x-text="moveDestinationPath"></span>
+        </div>
+
+        <div x-show="formError" x-cloak class="mm-form-error" x-text="formError"></div>
+
+        <div class="mm-modal-actions">
+            <x-moonshine::form.button @click.stop.prevent="window.MoonShine?.ui?.toggleModal(modalPrefix + 'move')" class="btn-secondary">
+                {{ __('moonshine-media-manager::media-manager.close') }}
+            </x-moonshine::form.button>
+            <x-moonshine::form.button @click.stop.prevent="submitMove()" class="btn-primary">
+                {{ __('moonshine-media-manager::media-manager.move_here') }}
+            </x-moonshine::form.button>
+        </div>
+    </div>
+</x-moonshine::modal>
+
+<x-moonshine::modal name="{{ $modalPrefix }}replace" title="{{ __('moonshine-media-manager::media-manager.replace_action') }}" :closeOutside="false">    <div class="mm-modal-form">
         <div class="mm-replace-current">
             <span class="mm-replace-label">{{ __('moonshine-media-manager::media-manager.replace_current') }}:</span>
             <span class="mm-replace-filename" x-text="replaceFileName"></span>

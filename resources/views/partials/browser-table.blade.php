@@ -93,6 +93,15 @@
                                 <x-moonshine::icon icon="arrow-path"/>
                             </x-moonshine::link-button>
 
+                            <x-moonshine::link-button
+                                x-show="!file.isDir"
+                                @click.prevent="openMoveModal(file)"
+                                class="btn-sm btn-secondary"
+                                title="{{ __('moonshine-media-manager::media-manager.move_action') }}"
+                            >
+                                <x-moonshine::icon icon="folder-open"/>
+                            </x-moonshine::link-button>
+
                             @foreach($mmFileActions as $actionName => $action)
                                 <x-moonshine::link-button
                                     x-show="{{ $action['x-show'] ?? 'true' }}"
