@@ -17,6 +17,10 @@
     --mm-color-gray-50: var(--color-gray-50, #f9fafb);
     --mm-color-gray-600: var(--color-gray-600, #4b5563);
     --mm-color-gray-700: #888;
+    /* Dedicated stacking layers: browser off-canvas and its dialogs stay above
+       any foreign overlay at the core modal layer (1100), below core toasts (1300). */
+    --mm-z-browser: calc(var(--z-modal, 1100) + 50);
+    --mm-z-dialog: calc(var(--z-menu, 1200) + 50);
 }
 
 .mm-toolbar .btn {

@@ -9,6 +9,13 @@
 >
     <div x-data="mmBrowser({{ Js::from($urls) }})"
          x-ref="mmRoot"
+         x-init="(() => {
+             const template = $el.closest('.offcanvas-template');
+             if (template) {
+                 template.style.setProperty('--z-offcanvas', 'var(--mm-z-browser)');
+                 console.debug('[media-manager] browser offcanvas elevated to var(--mm-z-browser)');
+             }
+         })()"
          :class="{ 'mm-drag-active': isDragOver }"
     >
 
