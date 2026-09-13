@@ -123,8 +123,11 @@
         >{{ __('moonshine-media-manager::media-manager.filter_archives') }}</button>
         <button type="button"
                 @click.prevent="toggleHideConverted()"
-                :class="hideConverted ? 'mm-chip mm-chip--active' : 'mm-chip'"
-                title="{{ __('moonshine-media-manager::media-manager.filter_hide_converted') }}"
+                :class="hideConvertedActive ? 'mm-chip mm-chip--active' : 'mm-chip'"
+                :disabled="hideConvertedSuppressed"
+                :title="hideConvertedSuppressed
+                    ? '{{ __('moonshine-media-manager::media-manager.filter_hide_converted_disabled') }}'
+                    : '{{ __('moonshine-media-manager::media-manager.filter_hide_converted') }}'"
         >{{ __('moonshine-media-manager::media-manager.filter_hide_converted') }}</button>
     </div>
 

@@ -50,6 +50,7 @@ return [
     'filter_audio' => 'Audio',
     'filter_archives' => 'Archives',
     'filter_hide_converted' => 'Hide WebP/AVIF',
+    'filter_hide_converted_disabled' => 'Filter disabled: this field allows picking WebP/AVIF',
     'sort_name' => 'Name',
     'sort_date' => 'Date',
     'sort_size' => 'Size',
