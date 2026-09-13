@@ -1,22 +1,24 @@
 # MoonShine Media Manager
 
-Файловый менеджер для [MoonShine](https://moonshine-laravel.com/).
+**English** | [Русский](README.ru.md)
 
-### Поддержка версий
+A file manager for [MoonShine](https://moonshine-laravel.com/).
 
-| MoonShine | Пакет | Документация                        |
-|-----------|-------|-------------------------------------|
-| 4.0+      | 4.x   | [Ниже ↓](#установка) + [docs/](docs/) |
-| 4.0+      | 3.x   | [docs/legacy-versions.md](docs/legacy-versions.md) |
-| 3.0+      | 2.x   | [docs/legacy-versions.md](docs/legacy-versions.md) |
-| 2.0+      | 1.x   |                                     |
+### Version support
 
-## Скриншоты
+| MoonShine | Package | Documentation |
+|-----------|---------|---------------|
+| 4.0+      | 4.x     | [Below ↓](#installation) + [docs/](docs/) |
+| 4.0+      | 3.x     | [docs/legacy-versions.md](docs/legacy-versions.md) |
+| 3.0+      | 2.x     | [docs/legacy-versions.md](docs/legacy-versions.md) |
+| 2.0+      | 1.x     | |
+
+## Screenshots
 
 <table>
     <tr>
-        <td align="center"><b>Менеджер</b></td>
-        <td align="center"><b>Пикер</b></td>
+        <td align="center"><b>Manager</b></td>
+        <td align="center"><b>Picker</b></td>
     </tr>
     <tr>
         <td><img src="blob/manager.jpg" alt="Media Manager" width="400"/></td>
@@ -24,7 +26,7 @@
     </tr>
 </table>
 
-## Установка
+## Installation
 
 ```bash
 composer require yurizoom/moonshine-media-manager
@@ -32,56 +34,62 @@ php artisan vendor:publish --tag=moonshine-media-manager-assets
 php artisan vendor:publish --tag=moonshine-media-manager-config
 ```
 
-Подключите OffCanvas в layout и — опционально — пункт меню: [Установка и быстрый старт](docs/getting-started.md).
+Add the OffCanvas to your layout and — optionally — a menu item: [Getting started](docs/getting-started.md).
 
-## Пример: picker-поле в форме
+## Quick example: picker field in a form
 
 ```php
 use YuriZoom\MoonShineMediaManager\Fields\MediaManagerPicker;
 
-// Одно изображение
-MediaManagerPicker::make('Изображение', 'image')
+// Single image
+MediaManagerPicker::make('Image', 'image')
     ->allowedTypes(['image']),
 
-// Множественный выбор
-MediaManagerPicker::make('Галерея', 'images')
+// Multiple selection
+MediaManagerPicker::make('Gallery', 'images')
     ->multiple()
     ->allowedTypes(['image']),
 ```
 
-Работает с обычными полями, Json и Layouts — [подробнее](docs/picker-field.md).
+Works with regular fields, Json and Layouts — [details](docs/picker-field.md).
 
-## Возможности v4
+## v4 features
 
-- **AJAX навигация** — переход по папкам без перезагрузки
-- **Поиск / фильтр / сортировка** — мгновенный поиск по имени, фильтр по типу, сортировка по имени / дате / размеру
-- **Скрытие конвертированных форматов** — кнопка «Скрыть WebP/AVIF», состояние в localStorage
-- **Загрузка файлов** — множественная, с проверкой MIME, расширения и размера; drag-and-drop в модалке загрузки
-- **Replace file** — перезапись файла по тому же пути (URL не ломается)
-- **Move file** — перемещение через folder browser
-- **Создание папок / Переименование / Bulk delete / Удаление / Скачивание**
-- **URL файла** — просмотр ссылки с копированием
-- **Inline-валидация** — ошибки прямо в модалках, всё локализовано (ru/en)
-- **Два вида** — таблица и сетка (grid)
-- **Пикер запоминает папку** — при повторном открытии возвращается в последнюю
-- **Lazy-load** — превью загружаются только при скролле
-- **Cache-busting** — после Replace браузер автоматически обновляет изображение
-- **Picker-поле** — выбор файлов из менеджера прямо в форме (multiple, фильтры, drag-and-drop reorder)
-- **Layouts / Json** — полная интеграция с moonshine/layouts-field и Json-полями
-- **Расширяемость** — события (Uploaded/Replaced/Deleted) и реестр действий для сторонних пакетов
-- **Гарантированные слои модальных окон** — менеджер всегда выше чужих оверлеев ([z-index](docs/configuration.md#слои-модальных-окон-z-index))
+- **AJAX navigation** — browse folders without page reloads
+- **Search / filter / sort** — instant search by name, type filter, sort by name / date / size
+- **Hide converted formats** — "Hide WebP/AVIF" toggle, state persisted in localStorage
+- **Uploads** — multiple files with MIME, extension and size validation; drag-and-drop inside the upload modal
+- **Replace file** — overwrite in place, the URL stays the same
+- **Move file** — relocate via the folder browser
+- **Folders / rename / bulk delete / download**
+- **File URL** — view and copy the link
+- **Inline validation** — errors right inside the modals, fully localized (en/ru)
+- **Two views** — table and grid
+- **Table row hover** — dark-mode aware highlight
+- **Delete keeps your position** — the list scrolls to and highlights the nearest surviving row
+- **Picker remembers the folder** — reopens where you left it
+- **Lazy offcanvas** — admin pages that never open the manager fire no extra requests
+- **Lazy-load previews** — thumbnails load on scroll
+- **Cache-busting** — images refresh automatically after Replace
+- **Picker field** — pick files straight from your forms (multiple, filters enforced on upload too, drag-and-drop reorder)
+- **Layouts / Json** — full integration with moonshine/layouts-field and Json fields
+- **Extensibility** — events (Uploaded/Replaced/Deleted — dispatched per file, even inside deleted folders) and an action registry for third-party packages
+- **Guaranteed modal layers** — the manager always floats above foreign overlays ([z-index](docs/configuration.md#слои-модальных-окон-z-index))
+- **Tested** — 42 tests (PHPUnit + Testbench), CI matrix PHP 8.2/8.3
 
-## Документация
+## Documentation
 
-| Guide | Описание |
-|-------|----------|
-| [Установка и быстрый старт](docs/getting-started.md) | Публикация, OffCanvas, меню, проверка |
-| [Конфигурация](docs/configuration.md) | Параметры, ENV, авторизация, z-index слои |
-| [Поле MediaManagerPicker](docs/picker-field.md) | Фильтрация, Json, Layouts, поведение |
-| [API и события](docs/api.md) | Маршруты, JSON-контракт, события, реестр |
-| [Разработка](docs/development.md) | Сборка ассетов, интеграция пакетов |
-| [Старые версии](docs/legacy-versions.md) | Настройка v3 (MoonShine 4) и v2 (MoonShine 3) |
+Guides are currently written in Russian; English translations are planned.
 
-## Лицензия
+| Guide | Description |
+|-------|-------------|
+| [Getting started](docs/getting-started.md) | Publishing, OffCanvas, menu, verification |
+| [Configuration](docs/configuration.md) | Options, ENV, authorization, z-index layers |
+| [MediaManagerPicker field](docs/picker-field.md) | Filtering, Json, Layouts, behavior |
+| [API & events](docs/api.md) | Routes, JSON contract, events, registry |
+| [Development](docs/development.md) | Asset builds, package integration |
+| [Legacy versions](docs/legacy-versions.md) | v3 (MoonShine 4) and v2 (MoonShine 3) setup |
+
+## License
 
 [The MIT License (MIT)](LICENSE).
