@@ -1,87 +1,87 @@
-[← Конфигурация](configuration.md) · [Back to README](../README.md) · [API и события →](api.md)
+[← Configuration](configuration.md) · **English** | [Русский](picker-field.ru.md) · [Back to README](../README.md) · [API & events →](api.md)
 
-# Поле MediaManagerPicker
+# MediaManagerPicker field
 
-Поле для выбора файлов из менеджера прямо в форме. Работает с обычными полями, Json и Layouts.
+A field for picking files from the manager right inside a form. Works with regular fields, Json and Layouts.
 
-## Базовое использование
+## Basic usage
 
 ```php
 use YuriZoom\MoonShineMediaManager\Fields\MediaManagerPicker;
 
-// Одно изображение
-MediaManagerPicker::make('Изображение', 'image')
+// Single image
+MediaManagerPicker::make('Image', 'image')
     ->allowedTypes(['image']),
 
-// Множественный выбор с перетаскиванием
-MediaManagerPicker::make('Галерея', 'images')
+// Multiple selection with drag-and-drop reordering
+MediaManagerPicker::make('Gallery', 'images')
     ->multiple()
     ->allowedTypes(['image']),
 ```
 
-Для работы поля требуется подключённый `MediaManagerOffCanvas` в layout (см. [Установка](getting-started.md)).
+The field requires `MediaManagerOffCanvas` to be wired into the layout (see [Installation](getting-started.md)).
 
-## Фильтрация файлов
+## File filtering
 
-По типу или по расширению, можно комбинировать:
+By type or by extension, combinable:
 
 ```php
-// По типу (из менеджера): image, video, audio, pdf, word, code, zip, txt, ppt
+// By type (from the manager): image, video, audio, pdf, word, code, zip, txt, ppt
 ->allowedTypes(['image'])
 ->allowedTypes(['image', 'pdf'])
 
-// По расширению (точный контроль):
+// By extension (precise control):
 ->allowedExtensions(['jpg', 'png', 'webp'])
 ->allowedExtensions(['pdf', 'doc', 'docx', 'xls', 'xlsx'])
 ```
 
-## С Json
+## With Json
 
 ```php
 use MoonShine\UI\Fields\Json;
 
-Json::make('Мета', 'meta')
+Json::make('Meta', 'meta')
     ->fields([
-        Text::make('Заголовок', 'title'),
-        MediaManagerPicker::make('Изображение', 'image')
+        Text::make('Title', 'title'),
+        MediaManagerPicker::make('Image', 'image')
             ->allowedTypes(['image']),
-        MediaManagerPicker::make('Документ', 'document')
+        MediaManagerPicker::make('Document', 'document')
             ->allowedExtensions(['pdf', 'doc', 'docx']),
-        MediaManagerPicker::make('Файлы', 'files')
+        MediaManagerPicker::make('Files', 'files')
             ->multiple()
             ->allowedExtensions(['pdf', 'doc', 'docx', 'xls', 'xlsx']),
     ]),
 ```
 
-## С Layouts
+## With Layouts
 
 ```php
 use MoonShine\Layouts\Fields\Layouts;
 
-Layouts::make('Контент', 'content')
-    ->addLayout('Блок с изображением', 'image_block', [
-        Text::make('Заголовок', 'title'),
-        MediaManagerPicker::make('Изображение', 'image')
+Layouts::make('Content', 'content')
+    ->addLayout('Image block', 'image_block', [
+        Text::make('Title', 'title'),
+        MediaManagerPicker::make('Image', 'image')
             ->allowedTypes(['image']),
     ])
-    ->addLayout('Файловый блок', 'files_block', [
-        Text::make('Заголовок', 'title'),
-        MediaManagerPicker::make('Документы', 'documents')
+    ->addLayout('Files block', 'files_block', [
+        Text::make('Title', 'title'),
+        MediaManagerPicker::make('Documents', 'documents')
             ->multiple()
             ->allowedExtensions(['pdf', 'doc', 'docx', 'xls', 'xlsx']),
     ]),
 ```
 
-## Поведение
+## Behavior
 
-- **Фильтры enforced на upload** — файлы, загружаемые из открытого picker'ом менеджера, проверяются против `allowedTypes`/`allowedExtensions` на сервере: несовпадающий файл отклоняется с 400
-- **Пикер запоминает папку** — при повторном открытии возвращается в последнюю папку
-- **Drag-and-drop reorder** — перетаскивание для изменения порядка выбранных файлов
-- **Фильтр WebP/AVIF** — для picker-полей с `allowedExtensions`, включающим webp/avif, фильтр «Скрыть WebP/AVIF» автоматически отключается, чтобы выбор таких файлов оставался возможным
-- **Preview** — в превью (таблицы ресурсов) поле рендерит `Thumbnails` ядра MoonShine
+- **Filters enforced on upload** — files uploaded from the picker-opened manager are checked against `allowedTypes`/`allowedExtensions` on the server: a non-matching file is rejected with a 400
+- **The picker remembers the folder** — reopening returns to the last visited folder
+- **Drag-and-drop reorder** — drag to change the order of selected files
+- **WebP/AVIF filter** — for picker fields whose `allowedExtensions` include webp/avif, the "Hide WebP/AVIF" toggle disables itself automatically so those files stay pickable
+- **Preview** — in previews (resource tables) the field renders MoonShine's core `Thumbnails`
 
 ## See Also
 
-- [API и события](api.md) — эндпоинты, которыми пользуется picker под капотом
-- [Конфигурация](configuration.md) — disk, allowed_ext и лимиты
-- [Установка](getting-started.md) — подключение MediaManagerOffCanvas
+- [API & events](api.md) — endpoints the picker uses under the hood
+- [Configuration](configuration.md) — disk, allowed_ext and limits
+- [Installation](getting-started.md) — wiring up MediaManagerOffCanvas
