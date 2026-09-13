@@ -11,3 +11,4 @@ bun.lock
 .phpunit.result.cache
 docs-html/
 *.log
+.ai-factory/
