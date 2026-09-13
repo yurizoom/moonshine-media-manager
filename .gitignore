@@ -12,3 +12,4 @@ bun.lock
 docs-html/
 *.log
 .ai-factory/
+.ai-factory.json
