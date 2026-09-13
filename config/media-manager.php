@@ -10,5 +10,8 @@ return [
     // Define the Gate in AuthServiceProvider: Gate::define('manage-media', fn($user) => ...).
     // null = no extra check (any authenticated MoonShine user has full access).
     'ability' => env('MOONSHINE_MEDIA_MANAGER_ABILITY'),
+    // Top-level storage directories the manager refuses to operate on.
+    // Values are matched case-insensitively against the first path segment.
+    'blocked_paths' => ['framework', 'logs'],
     'default_view' => 'table',
 ];

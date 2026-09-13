@@ -8,9 +8,17 @@
 @endphp
 
 <x-moonshine::modal name="{{ $modalPrefix }}upload" title="{{ __('moonshine-media-manager::media-manager.upload') }}" :closeOutside="false">
+    @include('moonshine-media-manager::partials._mm-z-bump')
     <form @submit.prevent="submitUpload()">
         <div class="mm-modal-form">
-            <label class="mm-upload-dropzone" for="{{ $modalPrefix }}upload-input">
+            <label class="mm-upload-dropzone"
+                   for="{{ $modalPrefix }}upload-input"
+                   :class="{ 'mm-upload-dropzone--active': dropzoneHover }"
+                   @dragenter="onDropzoneDragEnter($event)"
+                   @dragover="onDropzoneDragOver($event)"
+                   @dragleave="onDropzoneDragLeave()"
+                   @drop.prevent="onUploadDrop($event)"
+            >
                 <x-moonshine::icon icon="cloud-arrow-up" class="mm-upload-dropzone-icon"/>
                 <span class="mm-upload-dropzone-text">{{ __('moonshine-media-manager::media-manager.upload_choose') }}</span>
                 <span class="mm-upload-dropzone-hint">{{ __('moonshine-media-manager::media-manager.upload_hint') }}</span>
@@ -57,6 +65,7 @@
 </x-moonshine::modal>
 
 <x-moonshine::modal name="{{ $modalPrefix }}rename" title="{{ __('moonshine-media-manager::media-manager.rename') }}" :closeOutside="false">
+    @include('moonshine-media-manager::partials._mm-z-bump')
     <form @submit.prevent="submitRename()">
         <div class="mm-modal-form">
             <x-moonshine::form.input x-model="renameNew" @input="formError = ''" placeholder="{{ __('moonshine-media-manager::media-manager.new_path') }}" />
@@ -69,6 +78,7 @@
 </x-moonshine::modal>
 
 <x-moonshine::modal name="{{ $modalPrefix }}new-folder" title="{{ __('moonshine-media-manager::media-manager.new_folder') }}" :closeOutside="false">
+    @include('moonshine-media-manager::partials._mm-z-bump')
     <form @submit.prevent="submitNewFolder()">
         <div class="mm-modal-form">
             <x-moonshine::form.input x-model="newFolderName" @input="formError = ''" placeholder="{{ __('moonshine-media-manager::media-manager.name') }}" />
@@ -81,6 +91,7 @@
 </x-moonshine::modal>
 
 <x-moonshine::modal name="{{ $modalPrefix }}delete" title="{{ __('moonshine-media-manager::media-manager.delete') }}" :closeOutside="false">
+    @include('moonshine-media-manager::partials._mm-z-bump')
     <div class="mm-modal-form">
         <p>{{ __('moonshine-media-manager::media-manager.confirm_message') }}</p>
         <div x-show="formError" x-cloak class="mm-form-error" x-text="formError"></div>
@@ -97,6 +108,7 @@
 
 @if($showUrlModal)
     <x-moonshine::modal name="{{ $modalPrefix }}url" title="{{ __('moonshine-media-manager::media-manager.url') }}" :closeOutside="false">
+        @include('moonshine-media-manager::partials._mm-z-bump')
         <div class="mm-modal-form">
             <div class="mm-modal-url" x-text="urlToShow"></div>
             <div class="mm-modal-actions">
@@ -109,6 +121,7 @@
 @endif
 
 <x-moonshine::modal name="{{ $modalPrefix }}image-preview" title="{{ __('moonshine-media-manager::media-manager.view_image') }}" :closeOutside="false" :wide="true">
+    @include('moonshine-media-manager::partials._mm-z-bump')
     <div class="mm-modal-preview">
         <img :src="imagePreviewSrc" alt=""/>
     </div>
@@ -120,6 +133,7 @@
 </x-moonshine::modal>
 
 <x-moonshine::modal name="{{ $modalPrefix }}move" title="{{ __('moonshine-media-manager::media-manager.move_action') }}" :closeOutside="false">
+    @include('moonshine-media-manager::partials._mm-z-bump')
     <div class="mm-modal-form">
         <div class="mm-replace-current">
             <span class="mm-replace-label">{{ __('moonshine-media-manager::media-manager.move_file_label') }}:</span>
@@ -177,14 +191,23 @@
     </div>
 </x-moonshine::modal>
 
-<x-moonshine::modal name="{{ $modalPrefix }}replace" title="{{ __('moonshine-media-manager::media-manager.replace_action') }}" :closeOutside="false">    <div class="mm-modal-form">
+<x-moonshine::modal name="{{ $modalPrefix }}replace" title="{{ __('moonshine-media-manager::media-manager.replace_action') }}" :closeOutside="false">
+    @include('moonshine-media-manager::partials._mm-z-bump')
+    <div class="mm-modal-form">
         <div class="mm-replace-current">
             <span class="mm-replace-label">{{ __('moonshine-media-manager::media-manager.replace_current') }}:</span>
             <span class="mm-replace-filename" x-text="replaceFileName"></span>
         </div>
 
         <template x-if="! pendingReplace">
-            <label class="mm-upload-dropzone" for="{{ $modalPrefix }}replace-input">
+            <label class="mm-upload-dropzone"
+                   for="{{ $modalPrefix }}replace-input"
+                   :class="{ 'mm-upload-dropzone--active': dropzoneHover }"
+                   @dragenter="onDropzoneDragEnter($event)"
+                   @dragover="onDropzoneDragOver($event)"
+                   @dragleave="onDropzoneDragLeave()"
+                   @drop.prevent="onReplaceDrop($event)"
+            >
                 <x-moonshine::icon icon="cloud-arrow-up" class="mm-upload-dropzone-icon"/>
                 <span class="mm-upload-dropzone-text">{{ __('moonshine-media-manager::media-manager.replace_choose') }}</span>
                 <input type="file"

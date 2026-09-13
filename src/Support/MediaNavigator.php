@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\File;
 
 class MediaNavigator
 {
-    protected array $fileTypes = [
+    protected static array $fileTypes = [
         'image' => 'png|jpe?g|gif|bmp|svg|ico|webp|avif|heic|heif',
         'word' => 'doc|docx|odt|rtf',
         'excel' => 'xls|xlsx|ods|csv',
@@ -94,14 +94,21 @@ class MediaNavigator
             return '';
         }
 
-        return '<img src="'.e($this->storage->url($file)).'" alt="Attachment"/>';
+        return '<img src="'.e($this->storage->url($file)).'" alt="'.e(__('moonshine-media-manager::media-manager.preview_image')).'"/>';
     }
 
     private function detectFileType(string $file): string
     {
-        $extension = File::extension($file);
+        return self::typeForExtension(File::extension($file));
+    }
 
-        foreach ($this->fileTypes as $type => $regex) {
+    /**
+     * Map a file extension to its semantic type ('image', 'pdf', ...).
+     * Unknown extensions resolve to 'file'.
+     */
+    public static function typeForExtension(string $extension): string
+    {
+        foreach (self::$fileTypes as $type => $regex) {
             if (preg_match("/^($regex)$/i", $extension) !== 0) {
                 return $type;
             }

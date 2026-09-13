@@ -17,6 +17,10 @@
     --mm-color-gray-50: var(--color-gray-50, #f9fafb);
     --mm-color-gray-600: var(--color-gray-600, #4b5563);
     --mm-color-gray-700: #888;
+    /* Dedicated stacking layers: browser off-canvas and its dialogs stay above
+       any foreign overlay at the core modal layer (1100), below core toasts (1300). */
+    --mm-z-browser: calc(var(--z-modal, 1100) + 50);
+    --mm-z-dialog: calc(var(--z-menu, 1200) + 50);
 }
 
 .mm-toolbar .btn {
@@ -358,9 +362,18 @@
     object-fit: cover;
     display: block;
 }
+.mm-table-row {
+    transition: background-color 0.12s;
+}
+.mm-table-row:hover {
+    background-color: rgba(var(--mm-color-primary-rgb), 0.06);
+}
 .mm-table-row--highlight {
     background: rgba(var(--mm-color-warning-rgb), 0.12);
     box-shadow: inset 3px 0 0 var(--mm-color-warning);
+}
+.mm-table-row--highlight:hover {
+    background: rgba(var(--mm-color-warning-rgb), 0.18);
 }
 
 /* -- Selected bar confirm buttons -- */
@@ -399,12 +412,11 @@
     color: var(--color-error);
 }
 
-/* -- Drag-and-drop active state -- */
-.mm-drag-active {
-    outline: 2px dashed var(--color-primary);
-    outline-offset: -8px;
-    border-radius: var(--radius-lg);
-    background-color: --alpha(var(--color-primary) / 0.05);
+/* -- Dropzone (upload/replace modal): highlight while OS files hover over it -- */
+.mm-upload-dropzone--active {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background-color: --alpha(var(--color-primary) / 0.08);
 }
 
 /* -- Replace modal: current file info -- */

@@ -1,22 +1,24 @@
 # MoonShine Media Manager
 
-Файловый менеджер для [MoonShine](https://moonshine-laravel.com/).
+**English** | [Русский](README.ru.md)
 
-### Поддержка версий
+A file manager for [MoonShine](https://moonshine-laravel.com/).
 
-| MoonShine | Пакет | Документация                        |
-|-----------|-------|-------------------------------------|
-| 4.0+      | 4.x   | [Ниже ↓](#настройка-v4-moonshine-4) |
-| 4.0+      | 3.x   | [Ниже ↓](#настройка-v3-moonshine-4) |
-| 3.0+      | 2.x   |                                     |
-| 2.0+      | 1.x   |                                     |
+### Version support
 
-## Скриншоты
+| MoonShine | Package | Documentation |
+|-----------|---------|---------------|
+| 4.0+      | 4.x     | [Below ↓](#installation) + [docs/](docs/) |
+| 4.0+      | 3.x     | [docs/legacy-versions.md](docs/legacy-versions.md) |
+| 3.0+      | 2.x     | [docs/legacy-versions.md](docs/legacy-versions.md) |
+| 2.0+      | 1.x     | |
+
+## Screenshots
 
 <table>
     <tr>
-        <td align="center"><b>Менеджер</b></td>
-        <td align="center"><b>Пикер</b></td>
+        <td align="center"><b>Manager</b></td>
+        <td align="center"><b>Picker</b></td>
     </tr>
     <tr>
         <td><img src="blob/manager.jpg" alt="Media Manager" width="400"/></td>
@@ -24,252 +26,70 @@
     </tr>
 </table>
 
-## Установка
+## Installation
 
 ```bash
 composer require yurizoom/moonshine-media-manager
-```
-
----
-
-## Настройка v4 (MoonShine 4+)
-
-Полностью AJAX — загрузка, удаление, переименование, навигация по папкам без перезагрузки страницы.
-
-После установки опубликуйте ассеты:
-
-```bash
 php artisan vendor:publish --tag=moonshine-media-manager-assets
+php artisan vendor:publish --tag=moonshine-media-manager-config
 ```
 
-### Конфигурация
+Add the OffCanvas to your layout and — optionally — a menu item: [Getting started](docs/getting-started.md).
 
-Добавьте в `config/moonshine.php`:
-
-```php
-'media_manager' => [
-    'auto_menu' => true,
-    'disk' => config('filesystem.default', 'public'),
-    'allowed_ext' => 'jpg,jpeg,png,gif,webp,avif,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,txt,mp3,mp4,wav,avi,mov',
-    'max_file_size' => env('MOONSHINE_MEDIA_MANAGER_MAX_FILE_SIZE', 50 * 1024 * 1024),
-    'default_view' => 'table',
-],
-```
-
-### Подключение OffCanvas
-
-В `app/MoonShine/Layouts/MoonShineLayout.php`:
-
-```php
-use YuriZoom\MoonShineMediaManager\Components\MediaManagerOffCanvas;
-
-final class MoonShineLayout extends AppLayout
-{
-    protected function getContentComponents(): array
-    {
-        return [
-            ...parent::getContentComponents(),
-            MediaManagerOffCanvas::make(),
-        ];
-    }
-}
-```
-
-`MediaManagerOffCanvas` — глобальный компонент, рендерит offcanvas-панель с файловым менеджером. Именно через неё работают все picker-поля на страницах. Assets загружаются автоматически через компонент.
-
-### Добавление в меню (опционально)
-
-Если `auto_menu` включён (по умолчанию), пункт появится автоматически. Для ручного размещения:
-
-```php
-use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
-
-protected function menu(): array
-{
-    return [
-        MenuItem::make(MediaManagerPage::class),
-    ];
-}
-```
-
-### Поле MediaManagerPicker
-
-Поле для выбора файлов из менеджера прямо в форме. Работает с обычными полями, Json и Layouts.
-
-**Базовое использование:**
+## Quick example: picker field in a form
 
 ```php
 use YuriZoom\MoonShineMediaManager\Fields\MediaManagerPicker;
 
-// Одно изображение
-MediaManagerPicker::make('Изображение', 'image')
+// Single image
+MediaManagerPicker::make('Image', 'image')
     ->allowedTypes(['image']),
 
-// Множественный выбор с перетаскиванием
-MediaManagerPicker::make('Галерея', 'images')
+// Multiple selection
+MediaManagerPicker::make('Gallery', 'images')
     ->multiple()
     ->allowedTypes(['image']),
 ```
 
-**Фильтрация файлов** — по типу или по расширению, можно комбинировать:
+Works with regular fields, Json and Layouts — [details](docs/picker-field.md).
 
-```php
-// По типу (из менеджера): image, video, audio, pdf, word, code, zip, txt, ppt
-->allowedTypes(['image'])
-->allowedTypes(['image', 'pdf'])
+## v4 features
 
-// По расширению (точный контроль):
-->allowedExtensions(['jpg', 'png', 'webp'])
-->allowedExtensions(['pdf', 'doc', 'docx', 'xls', 'xlsx'])
-```
+- **AJAX navigation** — browse folders without page reloads
+- **Search / filter / sort** — instant search by name, type filter, sort by name / date / size
+- **Hide converted formats** — "Hide WebP/AVIF" toggle, state persisted in localStorage
+- **Uploads** — multiple files with MIME, extension and size validation; drag-and-drop inside the upload modal
+- **Replace file** — overwrite in place, the URL stays the same
+- **Move file** — relocate via the folder browser
+- **Folders / rename / bulk delete / download**
+- **File URL** — view and copy the link
+- **Inline validation** — errors right inside the modals, fully localized (en/ru)
+- **Two views** — table and grid
+- **Table row hover** — dark-mode aware highlight
+- **Delete keeps your position** — the list scrolls to and highlights the nearest surviving row
+- **Picker remembers the folder** — reopens where you left it
+- **Lazy offcanvas** — admin pages that never open the manager fire no extra requests
+- **Lazy-load previews** — thumbnails load on scroll
+- **Cache-busting** — images refresh automatically after Replace
+- **Picker field** — pick files straight from your forms (multiple, filters enforced on upload too, drag-and-drop reorder)
+- **Layouts / Json** — full integration with moonshine/layouts-field and Json fields
+- **Extensibility** — events (Uploaded/Replaced/Deleted — dispatched per file, even inside deleted folders) and an action registry for third-party packages
+- **Guaranteed modal layers** — the manager always floats above foreign overlays ([z-index](docs/configuration.md#слои-модальных-окон-z-index))
+- **Tested** — 42 tests (PHPUnit + Testbench), CI matrix PHP 8.2/8.3
 
-**С Json:**
+## Documentation
 
-```php
-use MoonShine\UI\Fields\Json;
+Guides are currently written in Russian; English translations are planned.
 
-Json::make('Мета', 'meta')
-    ->fields([
-        Text::make('Заголовок', 'title'),
-        MediaManagerPicker::make('Изображение', 'image')
-            ->allowedTypes(['image']),
-        MediaManagerPicker::make('Документ', 'document')
-            ->allowedExtensions(['pdf', 'doc', 'docx']),
-        MediaManagerPicker::make('Файлы', 'files')
-            ->multiple()
-            ->allowedExtensions(['pdf', 'doc', 'docx', 'xls', 'xlsx']),
-    ]),
-```
+| Guide | Description |
+|-------|-------------|
+| [Getting started](docs/getting-started.md) | Publishing, OffCanvas, menu, verification |
+| [Configuration](docs/configuration.md) | Options, ENV, authorization, z-index layers |
+| [MediaManagerPicker field](docs/picker-field.md) | Filtering, Json, Layouts, behavior |
+| [API & events](docs/api.md) | Routes, JSON contract, events, registry |
+| [Development](docs/development.md) | Asset builds, package integration |
+| [Legacy versions](docs/legacy-versions.md) | v3 (MoonShine 4) and v2 (MoonShine 3) setup |
 
-**С Layouts:**
-
-```php
-use MoonShine\Layouts\Fields\Layouts;
-
-Layouts::make('Контент', 'content')
-    ->addLayout('Блок с изображением', 'image_block', [
-        Text::make('Заголовок', 'title'),
-        MediaManagerPicker::make('Изображение', 'image')
-            ->allowedTypes(['image']),
-    ])
-    ->addLayout('Файловый блок', 'files_block', [
-        Text::make('Заголовок', 'title'),
-        MediaManagerPicker::make('Документы', 'documents')
-            ->multiple()
-            ->allowedExtensions(['pdf', 'doc', 'docx', 'xls', 'xlsx']),
-    ]),
-```
-
-### Возможности v4
-
-- **AJAX навигация** — переход по папкам без перезагрузки
-- **Загрузка файлов** — множественная загрузка с проверкой MIME-типа, расширения и размера файла
-- **Создание папок** — прямо из интерфейса
-- **Переименование / перемещение** — через модалку с указанием нового пути
-- **Удаление** — с подтверждением
-- **Скачивание** — по клику
-- **URL файла** — просмотр ссылки с копированием
-- **Два вида** — таблица и сетка (grid)
-- **Быстрый переход** — ввод пути вручную
-- **Picker-поле** — выбор файлов из менеджера прямо в форме
-- **Drag-and-drop** — перетаскивание для изменения порядка в picker
-- **Подсветка навигации** — при переходе к файлу из picker
-- **Проверка файлов** — детекция несуществующих файлов (broken state)
-- **Превью** — клик по изображению открывает полноразмерный просмотр
-- **Не-изображения** — отображение иконки с расширением для PDF, DOC и т.д.
-- **Layouts / Json** — полная интеграция с moonshine/layouts-field и Json-полями
-
-### Конфигурация v4
-
-| Параметр | По умолчанию | Описание |
-|----------|-------------|----------|
-| `auto_menu` | `true` | Автоматически добавить в боковое меню |
-| `disk` | `public` | Диск файлового хранилища (только локальный) |
-| `allowed_ext` | `jpg,jpeg,png,gif,...` | Разрешённые для загрузки расширения (проверка по MIME + расширению) |
-| `max_file_size` | `10485760` (10 MB) | Максимальный размер загружаемого файла в байтах |
-| `default_view` | `table` | Вид по умолчанию: `table` или `list` |
-
----
-
-## Настройка v3 (MoonShine 4)
-
-Добавьте в `config/moonshine.php`:
-
-```php
-'media_manager' => [
-    'auto_menu' => true,
-    'disk' => config('filesystem.default', 'public'),
-    'allowed_ext' => 'jpg,jpeg,png,pdf,doc,docx,zip',
-    'default_view' => 'table',
-],
-```
-
-Для добавления в меню:
-
-```php
-use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
-
-protected function menu(): array
-{
-    return [
-        MenuItem::make(new MediaManagerPage()),
-    ];
-}
-```
-
----
-
-## Настройка v2 (MoonShine 3)
-
-Если необходимо изменить настройки, добавьте в файл `config/moonshine.php`:
-
-```php
-[
-    'media_manager' => [
-        // Автоматическое добавление в меню
-        'auto_menu' => true,
-        // Корневая директория
-        'disk' => config('filesystem.default', 'public'),
-        // Разрешенные для загрузки расширения файлов
-        'allowed_ext' => 'jpg,jpeg,png,pdf,doc,docx,zip',
-        // Вид менеджера по-умолчанию
-        'default_view' => 'table',
-    ]
-]
-```
-
-Для добавления в меню в `app/MoonShine/Layouts/MoonShineLayout.php`:
-
-```php
-use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
-
-protected function menu(): array
-{
-    return [
-        MenuItem::make(new MediaManagerPage()),
-    ];
-}
-```
-
----
-
-## Разработка
-
-Для сборки ассетов (JS + CSS) из исходников:
-
-```bash
-npm install
-npm run build
-```
-
-Готовые файлы появятся в `dist/`. Для публикации в проекте:
-
-```bash
-php artisan vendor:publish --tag=moonshine-media-manager-assets --force
-```
-
----
-
-## Лицензия
+## License
 
 [The MIT License (MIT)](LICENSE).

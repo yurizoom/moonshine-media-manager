@@ -11,9 +11,9 @@ class MediaValidator
 {
     /**
      * Mapping of allowed file extensions to their expected MIME types.
-     * Used to verify that the actual file content matches the claimed extension.
+     * Used to verify that the actual file content matches the stored extension.
      *
-     * @var array<string, string[]>
+     * @var array<string, list<string>>
      */
     private const EXTENSION_MIME_MAP = [
         'jpg' => ['image/jpeg'],
@@ -58,38 +58,94 @@ class MediaValidator
         'webm' => ['video/webm'],
     ];
 
+    /**
+     * @param  list<string>  $allowed  allowed extensions (normalized: trimmed, lowercased)
+     */
     public function __construct(
         private readonly array $allowed = [],
         private readonly int $maxFileSize = 10 * 1024 * 1024,
     ) {
     }
 
-    public function validateUploadedFile(UploadedFile $file): void
+    /**
+     * Normalize a raw extension whitelist from config into a comparable list.
+     *
+     * @param  list<string>  $allowed
+     * @return self
+     */
+    public static function fromConfig(array $allowed, int $maxFileSize): self
     {
-        $realExtension = strtolower($file->guessExtension() ?: '');
-        $clientExtension = strtolower($file->getClientOriginalExtension());
+        return new self(
+            array_values(array_filter(array_map(
+                static fn ($ext): string => strtolower(trim((string) $ext)),
+                $allowed,
+            ))),
+            $maxFileSize,
+        );
+    }
 
-        if ($this->allowed) {
-            if (! in_array($realExtension, $this->allowed) && ! in_array($clientExtension, $this->allowed)) {
-                throw new MediaManagerException(
-                    __('moonshine-media-manager::media-manager.error.file_extension_not_allowed', ['ext' => $file->getClientOriginalExtension()])
-                );
-            }
+    /**
+     * Validate an uploaded file against the strict extension policy.
+     *
+     * The FINAL stored extension is authoritative: it must be explicitly
+     * whitelisted, the content-sniffed extension must not contradict it, and
+     * the MIME type must match the expected mapping. An empty whitelist
+     * denies everything (deny-by-default).
+     *
+     * @param  UploadedFile  $file  the uploaded file
+     * @param  string|null  $storedExtension  extension of the sanitized name that will be used for storage
+     *
+     * @throws MediaManagerException when any check fails
+     */
+    public function validateUploadedFile(UploadedFile $file, ?string $storedExtension = null): void
+    {
+        $extension = strtolower(trim((string) ($storedExtension ?? pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION))));
+
+        if ($this->allowed === []) {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.allowed_ext_not_configured')
+            );
         }
 
-        $mimeType = $file->getMimeType();
+        if ($extension === '' || ! in_array($extension, $this->allowed, true)) {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.file_extension_not_allowed', ['ext' => $extension])
+            );
+        }
 
-        if ($realExtension && isset(self::EXTENSION_MIME_MAP[$realExtension])) {
-            $expectedMimes = self::EXTENSION_MIME_MAP[$realExtension];
+        $guessedExtension = strtolower((string) ($file->guessExtension() ?: ''));
 
-            if (! in_array($mimeType, $expectedMimes, true)) {
+        // Content sniffed as a different known type than the stored extension
+        // (e.g. PHP payload named .jpg) — reject the contradiction.
+        if ($guessedExtension !== '' && $guessedExtension !== $extension && isset(self::EXTENSION_MIME_MAP[$guessedExtension])) {
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.mime_type_mismatch', [
+                    'ext' => $extension,
+                    'mime' => $file->getMimeType() ?? 'unknown',
+                ])
+            );
+        }
+
+        $mimeType = (string) ($file->getMimeType() ?: '');
+
+        if (isset(self::EXTENSION_MIME_MAP[$extension])) {
+            if (! in_array($mimeType, self::EXTENSION_MIME_MAP[$extension], true)) {
                 throw new MediaManagerException(
                     __('moonshine-media-manager::media-manager.error.mime_type_mismatch', [
-                        'ext' => $realExtension,
+                        'ext' => $extension,
                         'mime' => $mimeType,
                     ])
                 );
             }
+        } elseif ($guessedExtension !== '' && $guessedExtension !== $extension) {
+            // Extension is whitelisted but has no MIME mapping: still require
+            // the sniffed type to agree instead of skipping validation.
+            throw new MediaManagerException(
+                __('moonshine-media-manager::media-manager.error.mime_type_mismatch', [
+                    'ext' => $extension,
+                    'mime' => $mimeType,
+                ])
+            );
         }
 
         if ($file->getSize() > $this->maxFileSize) {
