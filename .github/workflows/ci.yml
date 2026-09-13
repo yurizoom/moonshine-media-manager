@@ -30,6 +30,29 @@ jobs:
       - name: Check PHP syntax (php -l)
         run: find src routes config -name '*.php' -type f -print0 | xargs -0 -n1 php -l
 
+  phpunit:
+    name: Tests (PHP ${{ matrix.php-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.2', '8.3']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run tests
+        run: vendor/bin/phpunit
+
   assets:
     name: Build Assets & Verify dist
     runs-on: ubuntu-latest

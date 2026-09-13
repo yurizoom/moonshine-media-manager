@@ -4,7 +4,10 @@
 .DS_Store
 composer.phar
 composer.lock
-package-lock.json
 bun.lock
 .omo/
 .codegraph/
+.phpunit.cache/
+.phpunit.result.cache
+docs-html/
+*.log
