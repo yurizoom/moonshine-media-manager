@@ -6,3 +6,5 @@ composer.phar
 composer.lock
 package-lock.json
 bun.lock
+.omo/
+.codegraph/
