@@ -1,6 +1,7 @@
 {
     "name": "yurizoom/moonshine-media-manager",
     "type": "library",
+    "version": "4.7.99",
     "description": "Media manager for MoonShine",
     "keywords": [
         "moonshine",

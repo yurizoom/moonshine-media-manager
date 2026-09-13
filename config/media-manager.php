@@ -14,4 +14,8 @@ return [
     // Values are matched case-insensitively against the first path segment.
     'blocked_paths' => ['framework', 'logs'],
     'default_view' => 'table',
+    'editorjs' => [
+        // Show the caption input on the Editor.js "Image from Media Manager" block.
+        'caption' => env('MOONSHINE_MEDIA_MANAGER_EDITORJS_CAPTION', false),
+    ],
 ];

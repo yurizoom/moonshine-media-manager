@@ -101,6 +101,15 @@ Or via `Event::listen()` in the extension package's ServiceProvider.
 
 Third-party packages can add their own actions to the manager UI via `MediaManagerRegistryInterface` (toolbar buttons and per-file actions) — see the integration example in the [development section](development.md).
 
+## Editor.js integration
+
+When `sckatik/moonshine-editorjs` is installed, the Media Manager automatically registers an `mediaImage` block tool for the Editor.js field ("Image from Media Manager"):
+
+- the toolbox gets a new block that opens the media manager offcanvas (images only) via `Alpine.store('mm').open()`;
+- the selected image renders in the block and is saved as `{file: {url, path}, caption}`;
+- frontend rendering goes through the `moonshine-media-manager::blocks.editorjs-media-image` view, registered in the Editor.js tool registry (`Sckatik\MoonshineEditorJs\Support\EditorJsToolRegistry`);
+- the integration is soft — gated by `class_exists()`, no composer dependency.
+
 ## See Also
 
 - [Development](development.md) — integration via the registry and asset builds

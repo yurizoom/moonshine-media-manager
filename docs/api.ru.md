@@ -101,6 +101,15 @@ protected $listen = [
 
 Сторонние пакеты могут добавлять свои действия в UI менеджера через `MediaManagerRegistryInterface` (кнопки в тулбаре и per-file действия) — см. пример интеграции в [разделе разработки](development.ru.md).
 
+## Интеграция с Editor.js
+
+При установленном `sckatik/moonshine-editorjs` медиа-менеджер автоматически регистрирует block-тулзу `mediaImage` для поля Editor.js («Картинка из медиа-менеджера»):
+
+- в toolbox появляется новый блок, который открывает offcanvas медиа-менеджера (только изображения) через `Alpine.store('mm').open()`;
+- выбранное изображение рендерится в блоке и сохраняется как `{file: {url, path}, caption}`;
+- рендер на фронте идёт через view `moonshine-media-manager::blocks.editorjs-media-image`, зарегистрированный в реестре тулз Editor.js (`Sckatik\MoonshineEditorJs\Support\EditorJsToolRegistry`);
+- интеграция мягкая — гейт `class_exists()`, без composer-зависимости.
+
 ## See Also
 
 - [Разработка](development.ru.md) — интеграция через реестр и сборка ассетов

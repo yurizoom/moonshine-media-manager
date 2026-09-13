@@ -12,8 +12,10 @@ use MoonShine\Contracts\Core\DependencyInjection\CoreContract;
 use MoonShine\Contracts\MenuManager\MenuManagerContract;
 use MoonShine\MenuManager\MenuItem;
 use Throwable;
+use Sckatik\MoonshineEditorJs\Support\EditorJsToolRegistry;
 use YuriZoom\MoonShineMediaManager\Contracts\MediaManagerRegistryInterface;
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
+use YuriZoom\MoonShineMediaManager\Support\EditorJsIntegration;
 use YuriZoom\MoonShineMediaManager\Support\MediaManagerRegistry;
 
 final class MediaManagerServiceProvider extends ServiceProvider
@@ -81,6 +83,7 @@ final class MediaManagerServiceProvider extends ServiceProvider
         ], ['moonshine-media-manager-assets']);
 
         $this->registerViewComposer();
+        $this->registerEditorJsIntegration();
 
         $core->pages([
             MediaManagerPage::class,
@@ -93,6 +96,17 @@ final class MediaManagerServiceProvider extends ServiceProvider
         }
 
         $this->autoPublishAssets();
+    }
+
+    private function registerEditorJsIntegration(): void
+    {
+        if (! class_exists(EditorJsToolRegistry::class)) {
+            return;
+        }
+
+        EditorJsIntegration::register(
+            $this->app->make(EditorJsToolRegistry::class),
+        );
     }
 
     private function autoPublishAssets(): void
