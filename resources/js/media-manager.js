@@ -65,6 +65,15 @@ const MM_HIDE_CONVERTED_KEY = 'moonshine-mm-hide-converted';
 
 const MM_CONVERTED_FORMATS = ['webp', 'avif'];
 
+/** Verbose logging is opt-in: set window.mmDebug = true before assets load. */
+const MM_DEBUG = window.mmDebug === true;
+
+function mmDebugLog(...args) {
+    if (MM_DEBUG) {
+        console.debug('[media-manager]', ...args);
+    }
+}
+
 /**
  * Read the initial hide-converted state from localStorage.
  * Degrades to false when storage is unavailable (private mode, etc.).
@@ -74,7 +83,7 @@ function mmReadHideConverted() {
     try {
         return window.localStorage.getItem(MM_HIDE_CONVERTED_KEY) === '1';
     } catch (e) {
-        console.debug('[media-manager] localStorage unavailable, hideConverted defaults to false', e);
+        mmDebugLog('localStorage unavailable, hideConverted defaults to false', e);
         return false;
     }
 }
@@ -218,7 +227,7 @@ document.addEventListener('alpine:init', () => {
     // =========================================================================
     // Browser — file browsing component (renders inside OffCanvas)
     // =========================================================================
-    Alpine.data('mmBrowser', (urls = {}, modalPrefix = 'mm-') => ({
+    Alpine.data('mmBrowser', (urls = {}, modalPrefix = 'mm-', deferLoad = false) => ({
         files: [],
 
         path: '/',
@@ -289,58 +298,27 @@ document.addEventListener('alpine:init', () => {
         sortDir: 'asc',
         hideConverted: mmReadHideConverted(),
 
-        isDragOver: false,
+        /** Dropzone (upload/replace modal) hover state for OS file drags */
+        dropzoneHover: false,
+
+        /** @type {number} dragenter/leave depth for the modal dropzone */
+        _dropzoneDepth: 0,
 
         isSubmitting: false,
 
         init() {
-            this.$nextTick(() => this.loadFiles('/'));
+            if (deferLoad) {
+                // Offcanvas: skip the eager load — $watch($store.mm.isOpen)
+                // fetches lastPath on first open instead, so pages that never
+                // open the manager don't pay for a media/list request.
+                mmDebugLog('initial load deferred (offcanvas)');
+            } else {
+                this.$nextTick(() => this.loadFiles('/'));
+            }
 
             const refreshHandler = () => this.refresh();
             window.addEventListener('mm:refresh', refreshHandler);
             this.$cleanup?.(() => window.removeEventListener('mm:refresh', refreshHandler));
-
-            // Window-level handlers so files dropped anywhere trigger upload (not only inside our root).
-            // Gated on Files type so we don't break drag-drop of text/images between other elements.
-            this._onDragOver = (e) => {
-                if (e.dataTransfer?.types?.includes('Files')) {
-                    e.preventDefault();
-                }
-            };
-            this._onDragEnter = (e) => {
-                if (! e.dataTransfer?.types?.includes('Files')) return;
-                this.dragCounter++;
-                this.isDragOver = true;
-            };
-            this._onDragLeave = () => {
-                if (this.dragCounter <= 0) return;
-                this.dragCounter--;
-                if (this.dragCounter <= 0) {
-                    this.isDragOver = false;
-                    this.dragCounter = 0;
-                }
-            };
-            this._onDrop = async (e) => {
-                if (! e.dataTransfer?.types?.includes('Files')) return;
-                e.preventDefault();
-                this.dragCounter = 0;
-                this.isDragOver = false;
-                const files = Array.from(e.dataTransfer?.files ?? []);
-                if (! files.length) return;
-                await this.submitUpload(files);
-            };
-
-            window.addEventListener('dragover', this._onDragOver, false);
-            window.addEventListener('dragenter', this._onDragEnter, false);
-            window.addEventListener('dragleave', this._onDragLeave, false);
-            window.addEventListener('drop', this._onDrop, false);
-
-            this.$cleanup?.(() => {
-                window.removeEventListener('dragover', this._onDragOver);
-                window.removeEventListener('dragenter', this._onDragEnter);
-                window.removeEventListener('dragleave', this._onDragLeave);
-                window.removeEventListener('drop', this._onDrop);
-            });
 
             this.$watch('$store.mm.isOpen', (open) => {
                 if (open) {
@@ -704,10 +682,10 @@ document.addEventListener('alpine:init', () => {
             try {
                 window.localStorage.setItem(MM_HIDE_CONVERTED_KEY, this.hideConverted ? '1' : '0');
             } catch (e) {
-                console.debug('[media-manager] localStorage unavailable, hideConverted not persisted', e);
+                mmDebugLog('localStorage unavailable, hideConverted not persisted', e);
             }
 
-            console.debug('[media-manager] hide converted formats:', this.hideConverted);
+            mmDebugLog('hide converted formats:', this.hideConverted);
         },
 
         /**
@@ -841,8 +819,13 @@ document.addEventListener('alpine:init', () => {
                 if (data.status) {
                     this.moveBrowserFolders = (data.files || []).filter((f) => f.isDir);
                     this.moveBrowserPath = data.path;
+                } else {
+                    this.toast(data.message || 'Failed to load folders', 'error');
                 }
             } catch (e) {
+                if (e.name !== 'AbortError') {
+                    this.toast(e.message || 'Failed to load folders', 'error');
+                }
             }
             this.moveBrowserLoading = false;
         },
@@ -963,26 +946,29 @@ document.addEventListener('alpine:init', () => {
 
         // -- Submit handlers --
 
-        async submitUpload(fileList = null) {
+        async submitUpload() {
             if (this.isSubmitting) return;
             this.isSubmitting = true;
             try {
-                await this._doUpload(fileList);
+                await this._doUpload();
             } finally {
                 this.isSubmitting = false;
             }
         },
 
-        async _doUpload(fileList) {
-            const isDirectDrop = fileList !== null;
-            const input = isDirectDrop ? null : document.getElementById(this.modalPrefix + 'upload-input');
-            const files = isDirectDrop ? fileList : this.pendingUploads.map((p) => p.file);
+        async _doUpload() {
+            const input = document.getElementById(this.modalPrefix + 'upload-input');
+            const files = this.pendingUploads.map((p) => p.file);
 
             const formData = new FormData();
             for (const f of files) {
                 formData.append('files[]', f);
             }
             formData.append('dir', this.path);
+
+            const store = Alpine.store('mm');
+            (store.allowedTypes ?? []).forEach((t) => formData.append('types[]', t));
+            (store.allowedExtensions ?? []).forEach((e) => formData.append('extensions[]', e));
 
             try {
                 const response = await fetch(this.urls.upload, {
@@ -995,26 +981,18 @@ document.addEventListener('alpine:init', () => {
                 if (data.status) {
                     this.toast(data.message || 'Uploaded', 'success');
                     this.formError = '';
-                    if (! isDirectDrop) {
-                        this.pendingUploads.forEach((p) => {
-                            if (p.preview) URL.revokeObjectURL(p.preview);
-                        });
-                        this.pendingUploads = [];
-                        if (input) input.value = '';
-                        window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
-                    }
+                    this.pendingUploads.forEach((p) => {
+                        if (p.preview) URL.revokeObjectURL(p.preview);
+                    });
+                    this.pendingUploads = [];
+                    if (input) input.value = '';
+                    window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'upload');
                     this.refresh();
                 } else {
                     this.formError = data.message || 'Upload failed';
-                    if (isDirectDrop) {
-                        this.toast(data.message || 'Upload failed', 'error');
-                    }
                 }
             } catch (e) {
                 this.formError = e.message || 'Upload failed';
-                if (isDirectDrop) {
-                    this.toast(e.message || 'Upload failed', 'error');
-                }
             }
         },
 
@@ -1041,23 +1019,74 @@ document.addEventListener('alpine:init', () => {
         },
 
         formatBytes(bytes) {
-            if (! bytes) return '0 B';
+            if (! bytes || bytes < 0) return '0 B';
             const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
             return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
         },
 
-        isDragOver: false,
-        dragCounter: 0,
+        // -- Dropzone (upload/replace modals): accept OS file drops inside the form --
 
-        async handleDrop(event) {
-            this.dragCounter = 0;
-            this.isDragOver = false;
-            const files = Array.from(event?.dataTransfer?.files ?? []);
-            if (! files.length) {
-                return;
+        onDropzoneDragEnter(e) {
+            if (! e.dataTransfer?.types?.includes('Files')) return;
+            e.preventDefault();
+            this._dropzoneDepth++;
+            this.dropzoneHover = true;
+        },
+
+        onDropzoneDragOver(e) {
+            if (! e.dataTransfer?.types?.includes('Files')) return;
+            e.preventDefault();
+        },
+
+        onDropzoneDragLeave() {
+            if (this._dropzoneDepth <= 0) return;
+            this._dropzoneDepth--;
+            if (this._dropzoneDepth <= 0) {
+                this.dropzoneHover = false;
             }
-            await this.submitUpload(files);
+        },
+
+        onDropzoneDrop(e) {
+            e.preventDefault();
+            this._dropzoneDepth = 0;
+            this.dropzoneHover = false;
+            if (! e.dataTransfer?.types?.includes('Files')) return null;
+            const files = e.dataTransfer?.files ?? [];
+            return files.length ? files : null;
+        },
+
+        onUploadDrop(e) {
+            const files = this.onDropzoneDrop(e);
+            if (files) this.addPendingFiles(files);
+        },
+
+        onReplaceDrop(e) {
+            const files = this.onDropzoneDrop(e);
+            if (files) this.addReplaceFile(files);
+        },
+
+        /**
+         * After deleting files, keep the viewport anchored: highlight and
+         * scroll to the nearest surviving neighbour (next, else previous)
+         * once the refreshed list renders.
+         * @param {string[]} paths
+         */
+        focusNeighbourAfterDelete(paths) {
+            const visible = this.displayedFiles ?? this.files;
+            const idx = visible.findIndex((f) => paths.includes(f.path));
+            if (idx === -1) return;
+
+            const deleted = (f) => paths.includes(f.path);
+            let target = null;
+            for (let i = idx + 1; i < visible.length && !target; i++) {
+                if (!deleted(visible[i])) target = visible[i];
+            }
+            for (let i = idx - 1; i >= 0 && !target; i--) {
+                if (!deleted(visible[i])) target = visible[i];
+            }
+
+            if (target) this.highlightPath = target.path;
         },
 
         async submitDelete() {
@@ -1086,6 +1115,7 @@ document.addEventListener('alpine:init', () => {
                         f => ! this.deleteFiles.includes(f.path)
                     );
                     this.toast(data.message || 'Deleted', 'success');
+                    this.focusNeighbourAfterDelete(this.deleteFiles);
                     this.formError = '';
                     window.MoonShine?.ui?.toggleModal(this.modalPrefix + 'delete');
                     this.deleteFiles = [];

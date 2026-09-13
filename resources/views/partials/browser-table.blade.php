@@ -20,7 +20,7 @@
         <x-slot:tbody>
             <template x-for="file in displayedFiles" :key="file.path">
                 <tr :id="'{{ $idPrefix }}' + file.path.replace(/[^a-zA-Z0-9]/g, '_')"
-                    :class="highlightPath === file.path ? 'mm-table-row--highlight' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'">
+                    :class="['mm-table-row', highlightPath === file.path && 'mm-table-row--highlight']">
                     @if($showCheckboxes)
                         <td>
                             <template x-if="!file.isDir">

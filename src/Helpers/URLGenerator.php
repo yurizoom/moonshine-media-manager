@@ -4,43 +4,16 @@ declare(strict_types=1);
 
 namespace YuriZoom\MoonShineMediaManager\Helpers;
 
-use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use YuriZoom\MoonShineMediaManager\Enums\MediaManagerView as MediaManagerViewEnums;
 use YuriZoom\MoonShineMediaManager\Exceptions\MediaManagerException;
 
 class URLGenerator
 {
-    public static function query($path, $query = [], $extra = [], $secure = null): string
-    {
-        [$path, $existingQueryString] = self::extractQueryString($path);
-
-        parse_str(Str::after($existingQueryString, '?'), $existingQueryArray);
-
-        return rtrim(
-            url()->to(
-                $path.'?'.Arr::query(
-                    array_merge($existingQueryArray, $query)
-                ),
-                $extra,
-                $secure
-            ),
-            '?'
-        );
-    }
-
-    protected static function extractQueryString($path): array
-    {
-        if (($queryPosition = strpos($path, '?')) !== false) {
-            return [
-                substr($path, 0, $queryPosition),
-                substr($path, $queryPosition),
-            ];
-        }
-
-        return [$path, ''];
-    }
-
+    /**
+     * Resolve the display view from the request, falling back to the
+     * configured default and finally to the table view.
+     */
     public static function getView(): MediaManagerViewEnums
     {
         return MediaManagerViewEnums::tryFrom(
@@ -50,6 +23,10 @@ class URLGenerator
             ?? MediaManagerViewEnums::TABLE;
     }
 
+    /**
+     * Normalize a user-supplied storage path: unify separators, drop
+     * traversal (…) and current-dir segments, return an absolute-style path.
+     */
     public static function sanitizePath(string $path): string
     {
         $path = str_replace('\\', '/', $path);
@@ -80,9 +57,20 @@ class URLGenerator
         'htaccess', 'htpasswd',
     ];
 
+    /**
+     * Normalize a file/folder name: transliterate unicode, strip control and
+     * special characters, collapse separators, and reject names carrying
+     * dangerous extensions in any segment (e.g. "shell.php.jpg").
+     *
+     * @throws MediaManagerException when a dangerous extension is detected
+     */
     public static function sanitizeFileName(string $name): string
     {
         $name = basename($name);
+
+        // Transliterate unicode (Cyrillic and friends) before filtering, so
+        // «Отчёт.jpg» becomes «Otchet.jpg» instead of being stripped to «jpg».
+        $name = Str::ascii($name);
 
         // Strip leading dots to prevent hidden/config files (.htaccess, .env, etc.)
         $name = ltrim($name, '.');

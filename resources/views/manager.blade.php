@@ -3,7 +3,6 @@
 ])
 
 <div x-data="mmBrowser({{ Js::from($urls) }}, 'mmp-')"
-     :class="{ 'mm-drag-active': isDragOver }"
 >
 
     @include('moonshine-media-manager::partials.browser-toolbar', ['showLabels' => true])

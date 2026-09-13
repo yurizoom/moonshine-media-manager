@@ -7,16 +7,15 @@
     title="{{ __('moonshine-media-manager::media-manager.title') }}"
     :wide="true"
 >
-    <div x-data="mmBrowser({{ Js::from($urls) }})"
+    <div x-data="mmBrowser({{ Js::from($urls) }}, 'mm-', true)"
          x-ref="mmRoot"
          x-init="(() => {
              const template = $el.closest('.offcanvas-template');
-             if (template) {
+             if (template && window.mmDebug) {
                  template.style.setProperty('--z-offcanvas', 'var(--mm-z-browser)');
                  console.debug('[media-manager] browser offcanvas elevated to var(--mm-z-browser)');
              }
          })()"
-         :class="{ 'mm-drag-active': isDragOver }"
     >
 
         @include('moonshine-media-manager::partials.browser-toolbar')
