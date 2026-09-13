@@ -28,7 +28,7 @@ moonshine-media-manager/
 │   ├── Controllers/            # MediaManagerController — HTTP-слой, JSON-ответы
 │   ├── MediaManager.php        # Доменная логика файловых операций (ls, upload, delete, move, replace)
 │   ├── Support/                # MediaValidator, MediaSecurity, MediaFormatter, MediaNavigator,
-│   │                           # MediaAssets, MediaManagerRegistry
+│   │                           # MediaAssets, MediaManagerRegistry, SvgSanitizer
 │   ├── Fields/                 # MediaManagerPicker — поле выбора файлов в формах
 │   ├── Components/             # MediaManagerOffCanvas — глобальная offcanvas-панель
 │   ├── Pages/                  # MediaManagerPage — страница менеджера
@@ -44,6 +44,9 @@ moonshine-media-manager/
 │   ├── views/                  # Blade: manager.blade.php, fields/, components/, partials/
 │   └── lang/{en,ru}/           # Файлы локализации
 ├── dist/                       # Собранные ассеты (публикуются тегом moonshine-media-manager-assets)
+├── tests/                      # PHPUnit + Testbench: Unit (санитайзеры) + Feature (JSON-контракт)
+├── phpunit.xml.dist            # Конфиг тестов
+├── .github/workflows/ci.yml    # CI: php -l, PHPUnit (8.2/8.3), сборка ассетов + проверка dist/
 ├── docs/                       # Доп. документация
 ├── blob/                       # Скриншоты для README
 ├── .ai-factory/                # Контекст AI Factory (DESCRIPTION, rules, config.yaml)

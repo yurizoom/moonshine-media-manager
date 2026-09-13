@@ -2,6 +2,19 @@
 
 # Разработка
 
+## Тесты
+
+Пакет покрыт PHPUnit + Orchestra Testbench (28 тестов: Unit по санитайзерам/валидатору/форматтерам, Feature по JSON-контракту всех эндпоинтов):
+
+```bash
+composer install            # один раз (dev-зависимости)
+vendor/bin/phpunit          # все тесты
+vendor/bin/phpunit tests/Unit
+vendor/bin/phpunit tests/Feature
+```
+
+CI (GitHub Actions) гоняет матрицу PHP 8.2/8.3 автоматически.
+
 ## Сборка ассетов
 
 Фронтенд менеджера — vanilla JS + CSS без фреймворков, собирается Vite 6 + lightningcss:
