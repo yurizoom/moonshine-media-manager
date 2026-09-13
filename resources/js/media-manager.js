@@ -1466,3 +1466,385 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 });
+
+// =========================================================================
+// Editor.js integration — "Image from Media Manager" block tool
+// =========================================================================
+
+const MM_EDITORJS_ICON_FOLDER_OPEN = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"/></svg>';
+const MM_EDITORJS_ICON_TRASH = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>';
+const MM_EDITORJS_ICON_BROKEN = '<svg class="mm-preview--broken" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>';
+
+class MmEditorJsImageTool {
+    static get toolbox() {
+        return {
+            title: window.editorJsConf?.mediaImage?.title || 'Image from Media Manager',
+            icon: '<svg width="17" height="15" viewBox="0 0 17 15" xmlns="http://www.w3.org/2000/svg"><path d="M15.1 1.5H1.9a.9.9 0 0 0-.9.9v11.2a.9.9 0 0 0 .9.9h13.2a.9.9 0 0 0 .9-.9V2.4a.9.9 0 0 0-.9-.9zM3.4 11.4l2.6-3.5 1.9 2.4 2.4-3 2.3 4.1H3.4z" fill="currentColor"/><circle cx="5.6" cy="5.1" r="1.2" fill="currentColor"/></svg>',
+        };
+    }
+
+    constructor({ data, config }) {
+        this.config = config || {};
+        this.baseUrl = String(
+            this.config.baseUrl || window.editorJsConf?.mediaImage?.baseUrl || '/storage'
+        ).replace(/\/+$/, '');
+        this.showCaption = window.editorJsConf?.mediaImage?.caption === true;
+        this.labels = {
+            remove: window.editorJsConf?.mediaImage?.remove || 'Remove',
+            notExists: window.editorJsConf?.mediaImage?.not_exists || 'File not found',
+        };
+
+        const files = Array.isArray(data && data.files) && data.files.length > 0
+            ? data.files
+            : (data && data.file && data.file.url ? [data.file] : []);
+
+        this.data = {
+            files,
+            caption: (data && data.caption) || '',
+        };
+
+        this._cards = {};
+        this.previewVersion = 0;
+        this.dragIdx = null;
+        this._checkTimer = null;
+        this._checkAbort = null;
+
+        this._onReplaced = (event) => {
+            const replacedPath = event?.detail?.path;
+            const mine = this.data.files.some((file) => file.path === replacedPath);
+
+            if (! replacedPath || ! mine) {
+                return;
+            }
+
+            this.previewVersion++;
+            this.renderPreview();
+        };
+        window.addEventListener('mm:replaced', this._onReplaced);
+    }
+
+    removed() {
+        window.removeEventListener('mm:replaced', this._onReplaced);
+
+        if (this._checkTimer) {
+            clearTimeout(this._checkTimer);
+        }
+
+        if (this._checkAbort) {
+            this._checkAbort.abort();
+        }
+    }
+
+    render() {
+        this.wrapper = document.createElement('div');
+
+        this.preview = document.createElement('div');
+        this.preview.className = 'flex flex-wrap gap-2 mb-3';
+
+        this.controls = document.createElement('div');
+        this.controls.className = 'flex items-center gap-2 mt-2';
+
+        const pickButton = document.createElement('button');
+        pickButton.type = 'button';
+        pickButton.className = 'btn btn-primary';
+        pickButton.innerHTML = '<div class="icon-wrapper text-current">' + MM_EDITORJS_ICON_FOLDER_OPEN + '</div>';
+        pickButton.addEventListener('click', () => this.openPicker());
+
+        this.clearButton = document.createElement('button');
+        this.clearButton.type = 'button';
+        this.clearButton.className = 'btn btn-error';
+        this.clearButton.innerHTML = '<div class="icon-wrapper text-current">' + MM_EDITORJS_ICON_TRASH + '</div>';
+        this.clearButton.addEventListener('click', () => this.clear());
+
+        this.controls.append(pickButton, this.clearButton);
+
+        this.wrapper.append(this.preview);
+
+        if (this.showCaption) {
+            this.captionInput = document.createElement('input');
+            this.captionInput.type = 'text';
+            this.captionInput.placeholder = window.editorJsConf?.mediaImage?.caption_placeholder || '';
+            this.captionInput.value = this.data.caption;
+            this.captionInput.style.cssText = [
+                'width: 100%',
+                'margin-bottom: 8px',
+                'padding: 6px 10px',
+                'border: 1px solid var(--color-border, #d1d5db)',
+                'border-radius: 6px',
+                'font-size: 14px',
+            ].join('; ');
+            this.captionInput.addEventListener('input', () => {
+                this.data.caption = this.captionInput.value;
+            });
+
+            this.wrapper.append(this.captionInput);
+        }
+
+        this.wrapper.append(this.controls);
+        this.renderPreview();
+
+        return this.wrapper;
+    }
+
+    openPicker() {
+        const store = typeof window.Alpine !== 'undefined' ? window.Alpine.store('mm') : null;
+
+        if (! store || typeof store.open !== 'function') {
+            return;
+        }
+
+        store.open(
+            {
+                multiple: true,
+                allowedTypes: ['image'],
+                existingPaths: this.data.files.map((file) => file.path),
+                baseUrl: this.baseUrl,
+            },
+            (paths) => this.setSelected(paths),
+        );
+    }
+
+    setSelected(paths) {
+        const list = Array.isArray(paths) ? paths : (paths ? [paths] : []);
+
+        this.data.files = list.map((path) => ({
+            path,
+            url: this.baseUrl ? this.baseUrl + '/' + path : path,
+        }));
+
+        this.renderPreview();
+    }
+
+    removeAt(index) {
+        this.data.files.splice(index, 1);
+
+        this.renderPreview();
+    }
+
+    clear() {
+        this.data.files = [];
+
+        this.renderPreview();
+    }
+
+    dragStart(index, event) {
+        this.dragIdx = index;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('application/x-mm-editorjs-card', String(index));
+    }
+
+    dropTo(index) {
+        const from = this.dragIdx;
+
+        this.dragIdx = null;
+
+        if (from === null || from === index) {
+            return;
+        }
+
+        const files = [...this.data.files];
+        const [moved] = files.splice(from, 1);
+        files.splice(index, 0, moved);
+        this.data.files = files;
+
+        this.renderPreview();
+    }
+
+    urlForPath(file) {
+        const base = this.baseUrl + '/' + file.path;
+
+        return this.previewVersion > 0 ? base + '?v=' + this.previewVersion : base;
+    }
+
+    renderPreview() {
+        if (! this.preview) {
+            return;
+        }
+
+        this.preview.innerHTML = '';
+        this._cards = {};
+
+        this.data.files.forEach((file, index) => {
+            const url = this.urlForPath(file);
+
+            const card = document.createElement('div');
+            card.className = 'mm-picker-card';
+            card.draggable = true;
+            card.style.cursor = 'grab';
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'mm-picker-remove';
+            remove.title = this.labels.remove;
+            remove.textContent = '×';
+            remove.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                this.removeAt(index);
+            });
+            card.append(remove);
+
+            if (mmIsImageUrl(url)) {
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = file.path.split('/').pop();
+                img.loading = 'lazy';
+                img.decoding = 'async';
+                img.className = 'zoom-in rounded object-cover ring-1 ring-black/5 dark:ring-white/10 cursor-pointer';
+                img.addEventListener('error', () => this.markBroken(index));
+                img.addEventListener('click', () => {
+                    img.dispatchEvent(new CustomEvent('img-popup', {
+                        detail: { open: true, src: url, wide: true, auto: true, styles: '' },
+                        bubbles: true,
+                    }));
+                });
+                card.append(img);
+
+                this._cards[index] = { index, card, content: img, file, broken: false };
+            } else {
+                const documentCard = document.createElement('div');
+                documentCard.className = 'mm-picker-card--document';
+
+                const ext = document.createElement('span');
+                ext.className = 'mm-picker-ext';
+                ext.textContent = this.fileExt(file.path).toUpperCase();
+
+                const name = document.createElement('span');
+                name.className = 'mm-picker-filename';
+                name.textContent = file.path.split('/').pop();
+
+                documentCard.append(ext, name);
+                card.append(documentCard);
+
+                this._cards[index] = { index, card, content: documentCard, file, broken: false };
+            }
+
+            card.addEventListener('dragstart', (event) => {
+                event.stopPropagation();
+                this.dragStart(index, event);
+            });
+            card.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+            });
+            card.addEventListener('drop', (event) => {
+                event.stopPropagation();
+                this.dropTo(index);
+            });
+            card.addEventListener('dragend', (event) => {
+                event.stopPropagation();
+                this.dragIdx = null;
+            });
+
+            this.preview.append(card);
+        });
+
+        if (this.clearButton) {
+            this.clearButton.style.display = this.data.files.length > 0 ? '' : 'none';
+        }
+
+        this._debouncedCheckFiles();
+    }
+
+    markBroken(index) {
+        const entry = this._cards[index];
+
+        if (! entry || entry.broken) {
+            return;
+        }
+
+        entry.broken = true;
+        entry.content.remove();
+
+        const broken = document.createElement('div');
+        broken.className = 'mm-picker-card--broken';
+        broken.innerHTML = MM_EDITORJS_ICON_BROKEN;
+
+        const message = document.createElement('span');
+        message.textContent = this.labels.notExists;
+        broken.append(message);
+
+        entry.card.append(broken);
+    }
+
+    _debouncedCheckFiles() {
+        if (this._checkTimer) {
+            clearTimeout(this._checkTimer);
+        }
+
+        this._checkTimer = setTimeout(() => {
+            this._checkTimer = null;
+            this.checkFilesExist();
+        }, 200);
+    }
+
+    async checkFilesExist() {
+        const entries = Object.values(this._cards);
+
+        if (! entries.length || typeof Alpine === 'undefined') {
+            return;
+        }
+
+        if (this._checkAbort) {
+            this._checkAbort.abort();
+        }
+
+        this._checkAbort = new AbortController();
+        const signal = this._checkAbort.signal;
+        const cache = Alpine.store('mm')._existsCache;
+
+        await Promise.all(entries.map(async (entry) => {
+            if (signal.aborted || ! entry.file) {
+                return;
+            }
+
+            const path = entry.file.path;
+
+            if (cache[path] === true) {
+                return;
+            }
+
+            const exists = await mmCheckUrlExists(this.urlForPath(entry.file), cache, path, signal);
+
+            if (signal.aborted) {
+                return;
+            }
+
+            if (! exists) {
+                this.markBroken(entry.index);
+            }
+        }));
+    }
+
+    fileExt(path) {
+        if (! path) return '';
+        const parts = path.split('.');
+        return parts.length > 1 ? parts.pop().toLowerCase() : '';
+    }
+
+    save() {
+        return {
+            files: this.data.files,
+            caption: this.captionInput ? this.captionInput.value : this.data.caption,
+        };
+    }
+
+    validate(saved) {
+        return Boolean(saved && Array.isArray(saved.files) && saved.files.length > 0);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (! window.MoonShineEditorJs || typeof window.MoonShineEditorJs.registerTool !== 'function') {
+        return;
+    }
+
+    if (window.editorJsConf?.mediaImage?.activated === false) {
+        return;
+    }
+
+    window.MoonShineEditorJs.registerTool('mediaImage', {
+        class: MmEditorJsImageTool,
+        config: { baseUrl: window.editorJsConf?.mediaImage?.baseUrl },
+    });
+});
