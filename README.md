@@ -74,21 +74,21 @@ Works with regular fields, Json and Layouts — [details](docs/picker-field.md).
 - **Picker field** — pick files straight from your forms (multiple, filters enforced on upload too, drag-and-drop reorder)
 - **Layouts / Json** — full integration with moonshine/layouts-field and Json fields
 - **Extensibility** — events (Uploaded/Replaced/Deleted — dispatched per file, even inside deleted folders) and an action registry for third-party packages
-- **Guaranteed modal layers** — the manager always floats above foreign overlays ([z-index](docs/configuration.md#слои-модальных-окон-z-index))
+- **Guaranteed modal layers** — the manager always floats above foreign overlays ([z-index](docs/configuration.md#modal-layers-z-index))
 - **Tested** — 42 tests (PHPUnit + Testbench), CI matrix PHP 8.2/8.3
 
 ## Documentation
 
-Guides are currently written in Russian; English translations are planned.
+Guides are available in English and Russian (`*.ru.md`).
 
 | Guide | Description |
 |-------|-------------|
-| [Getting started](docs/getting-started.md) | Publishing, OffCanvas, menu, verification |
-| [Configuration](docs/configuration.md) | Options, ENV, authorization, z-index layers |
-| [MediaManagerPicker field](docs/picker-field.md) | Filtering, Json, Layouts, behavior |
-| [API & events](docs/api.md) | Routes, JSON contract, events, registry |
-| [Development](docs/development.md) | Asset builds, package integration |
-| [Legacy versions](docs/legacy-versions.md) | v3 (MoonShine 4) and v2 (MoonShine 3) setup |
+| [Getting started](docs/getting-started.md) · [RU](docs/getting-started.ru.md) | Publishing, OffCanvas, menu, verification |
+| [Configuration](docs/configuration.md) · [RU](docs/configuration.ru.md) | Options, ENV, authorization, z-index layers |
+| [MediaManagerPicker field](docs/picker-field.md) · [RU](docs/picker-field.ru.md) | Filtering, Json, Layouts, behavior |
+| [API & events](docs/api.md) · [RU](docs/api.ru.md) | Routes, JSON contract, events, registry |
+| [Development](docs/development.md) · [RU](docs/development.ru.md) | Asset builds, package integration |
+| [Legacy versions](docs/legacy-versions.md) · [RU](docs/legacy-versions.ru.md) | v3 (MoonShine 4) and v2 (MoonShine 3) setup |
 
 ## License
 

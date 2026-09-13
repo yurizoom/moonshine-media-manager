@@ -74,19 +74,21 @@ MediaManagerPicker::make('Галерея', 'images')
 - **Picker-поле** — выбор файлов из менеджера прямо в форме (multiple, фильтры действуют и на загрузку, drag-and-drop reorder)
 - **Layouts / Json** — полная интеграция с moonshine/layouts-field и Json-полями
 - **Расширяемость** — события (Uploaded/Replaced/Deleted — по событию на каждый файл, даже при удалении папки) и реестр действий для сторонних пакетов
-- **Гарантированные слои модальных окон** — менеджер всегда выше чужих оверлеев ([z-index](docs/configuration.md#слои-модальных-окон-z-index))
+- **Гарантированные слои модальных окон** — менеджер всегда выше чужих оверлеев ([z-index](docs/configuration.ru.md#слои-модальных-окон-z-index))
 - **Тесты** — 42 теста (PHPUnit + Testbench), CI-матрица PHP 8.2/8.3
 
 ## Документация
 
+Гайды доступны на русском и английском (`*.md` — английская версия).
+
 | Guide | Описание |
 |-------|----------|
-| [Установка и быстрый старт](docs/getting-started.md) | Публикация, OffCanvas, меню, проверка |
-| [Конфигурация](docs/configuration.md) | Параметры, ENV, авторизация, z-index слои |
-| [Поле MediaManagerPicker](docs/picker-field.md) | Фильтрация, Json, Layouts, поведение |
-| [API и события](docs/api.md) | Маршруты, JSON-контракт, события, реестр |
-| [Разработка](docs/development.md) | Сборка ассетов, интеграция пакетов |
-| [Старые версии](docs/legacy-versions.md) | Настройка v3 (MoonShine 4) и v2 (MoonShine 3) |
+| [Установка и быстрый старт](docs/getting-started.ru.md) · [EN](docs/getting-started.md) | Публикация, OffCanvas, меню, проверка |
+| [Конфигурация](docs/configuration.ru.md) · [EN](docs/configuration.md) | Параметры, ENV, авторизация, z-index слои |
+| [Поле MediaManagerPicker](docs/picker-field.ru.md) · [EN](docs/picker-field.md) | Фильтрация, Json, Layouts, поведение |
+| [API и события](docs/api.ru.md) · [EN](docs/api.md) | Маршруты, JSON-контракт, события, реестр |
+| [Разработка](docs/development.ru.md) · [EN](docs/development.md) | Сборка ассетов, интеграция пакетов |
+| [Старые версии](docs/legacy-versions.ru.md) · [EN](docs/legacy-versions.md) | Настройка v3 (MoonShine 4) и v2 (MoonShine 3) |
 
 ## Лицензия
 

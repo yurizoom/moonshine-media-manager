@@ -1,52 +1,52 @@
-[← API и события](api.md) · [Back to README](../README.md) · [Старые версии →](legacy-versions.md)
+[← API & events](api.md) · **English** | [Русский](development.ru.md) · [Back to README](../README.md) · [Legacy versions →](legacy-versions.md)
 
-# Разработка
+# Development
 
-## Тесты
+## Tests
 
-Пакет покрыт PHPUnit + Orchestra Testbench (28 тестов: Unit по санитайзерам/валидатору/форматтерам, Feature по JSON-контракту всех эндпоинтов):
+The package is covered by PHPUnit + Orchestra Testbench (42 tests: Unit for sanitizers/validator/formatters, Feature for the JSON contract of every endpoint):
 
 ```bash
-composer install            # один раз (dev-зависимости)
-vendor/bin/phpunit          # все тесты
+composer install            # once (dev dependencies)
+vendor/bin/phpunit          # all tests
 vendor/bin/phpunit tests/Unit
 vendor/bin/phpunit tests/Feature
 ```
 
-CI (GitHub Actions) гоняет матрицу PHP 8.2/8.3 автоматически.
+CI (GitHub Actions) runs a PHP 8.2/8.3 matrix automatically.
 
-## Сборка ассетов
+## Building assets
 
-Фронтенд менеджера — vanilla JS + CSS без фреймворков, собирается Vite 6 + lightningcss:
+The manager frontend is framework-free vanilla JS + CSS, built with Vite 6 + lightningcss:
 
 ```bash
 npm install
-npm run build        # разовая сборка в dist/
-npm run dev          # watch-режим
+npm run build        # one-off build into dist/
+npm run dev          # watch mode
 ```
 
-Готовые файлы появятся в `dist/`. Кастомный Vite-плагин оборачивает итоговый `media-manager.js` в IIFE — бандл изолирован от глобальной области хоста; сохраняйте это поведение при правке `vite.config.js`.
+The built files land in `dist/`. A custom Vite plugin wraps the final `media-manager.js` into an IIFE — the bundle stays isolated from the host's global scope; preserve this behavior when editing `vite.config.js`.
 
-## Публикация в хост-проекте
+## Publishing to the host project
 
 ```bash
 php artisan vendor:publish --tag=moonshine-media-manager-assets --force
 ```
 
-Флаг `--force` перезаписывает опубликованные ассеты свежесобранными.
+The `--force` flag overwrites the published assets with the freshly built ones.
 
-## Интеграция сторонних пакетов
+## Third-party package integration
 
-### Через события
+### Via events
 
 ```php
-// В ServiceProvider пакета-расширения
+// In the extension package's ServiceProvider
 use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileUploaded;
 
 Event::listen(MediaManagerFileUploaded::class, OptimizeUploadedImage::class);
 ```
 
-### Через реестр (кнопки в UI менеджера)
+### Via the registry (buttons in the manager UI)
 
 ```php
 use YuriZoom\MoonShineMediaManager\Contracts\MediaManagerRegistryInterface;
@@ -65,16 +65,16 @@ $this->app->resolving(
 );
 ```
 
-Доступные методы реестра: `addFileAction` / `addToolbarAction` / `removeFileAction` / `removeToolbarAction` (+ getters). File-действия появляются в таблице (inline) и в сетке (dropdown); toolbar-действия — рядом с Refresh / Upload / New Folder.
+Available registry methods: `addFileAction` / `addToolbarAction` / `removeFileAction` / `removeToolbarAction` (+ getters). File actions appear in the table (inline) and in the grid (dropdown); toolbar actions sit next to Refresh / Upload / New Folder.
 
-## Архитектура пакета
+## Package architecture
 
-Слои: `routes` → `Controllers` (HTTP/JSON) → `MediaManager` (домен файловых операций) → `Support` (валидация, безопасность, ассеты) + `Fields`/`Pages`/`Components` (UI-адаптеры MoonShine). Подробности — `.ai-factory/ARCHITECTURE.md`.
+Layers: `routes` → `Controllers` (HTTP/JSON) → `MediaManager` (file operations domain) → `Support` (validation, security, assets) + `Fields`/`Pages`/`Components` (MoonShine UI adapters).
 
-Полезный скилл для разработки MoonShine-пакетов — `moonshine-package` (`.opencode/skills/moonshine-package/`).
+A useful skill for developing MoonShine packages is `moonshine-package` (`.opencode/skills/moonshine-package/`).
 
 ## See Also
 
-- [API и события](api.md) — полный список эндпоинтов и событий
-- [Конфигурация](configuration.md) — z-index токены для CSS хоста
-- [Установка](getting-started.md) — публикация ассетов и конфига
+- [API & events](api.md) — the full list of endpoints and events
+- [Configuration](configuration.md) — z-index tokens for the host's CSS
+- [Installation](getting-started.md) — publishing assets and the config
