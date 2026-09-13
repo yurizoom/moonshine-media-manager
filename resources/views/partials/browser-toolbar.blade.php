@@ -121,6 +121,11 @@
                 @click.prevent="typeFilter = 'archives'"
                 :class="typeFilter === 'archives' ? 'mm-chip mm-chip--active' : 'mm-chip'"
         >{{ __('moonshine-media-manager::media-manager.filter_archives') }}</button>
+        <button type="button"
+                @click.prevent="toggleHideConverted()"
+                :class="hideConverted ? 'mm-chip mm-chip--active' : 'mm-chip'"
+                title="{{ __('moonshine-media-manager::media-manager.filter_hide_converted') }}"
+        >{{ __('moonshine-media-manager::media-manager.filter_hide_converted') }}</button>
     </div>
 
     <div class="mm-sort">

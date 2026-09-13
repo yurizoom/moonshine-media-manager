@@ -57,6 +57,28 @@ function mmCacheSet(cache, key, value) {
     cache[key] = value;
 }
 
+// =========================================================================
+// "Hide converted formats" toggle (WebP/AVIF)
+// =========================================================================
+
+const MM_HIDE_CONVERTED_KEY = 'moonshine-mm-hide-converted';
+
+const MM_CONVERTED_FORMATS = ['webp', 'avif'];
+
+/**
+ * Read the initial hide-converted state from localStorage.
+ * Degrades to false when storage is unavailable (private mode, etc.).
+ * @returns {boolean}
+ */
+function mmReadHideConverted() {
+    try {
+        return window.localStorage.getItem(MM_HIDE_CONVERTED_KEY) === '1';
+    } catch (e) {
+        console.debug('[media-manager] localStorage unavailable, hideConverted defaults to false', e);
+        return false;
+    }
+}
+
 document.addEventListener('alpine:init', () => {
 
     // =========================================================================
@@ -265,6 +287,7 @@ document.addEventListener('alpine:init', () => {
         typeFilter: 'all',
         sortField: 'name',
         sortDir: 'asc',
+        hideConverted: mmReadHideConverted(),
 
         isDragOver: false,
 
@@ -581,7 +604,7 @@ document.addEventListener('alpine:init', () => {
         isImageUrl: mmIsImageUrl,
 
         /**
-         * Files after search + type filter + sort are applied.
+         * Files after hide-converted + search + type filter + sort are applied.
          * Folders always pass the type filter (so navigation works during search).
          * @returns {Array}
          */
@@ -597,6 +620,9 @@ document.addEventListener('alpine:init', () => {
             const allowedTypes = this.typeFilter !== 'all' ? (typeMap[this.typeFilter] || []) : null;
 
             let list = this.files.filter((f) => {
+                if (this.hideConvertedActive && this.isConvertedFile(f)) {
+                    return false;
+                }
                 if (q && ! this.basename(f.path).toLowerCase().includes(q)) {
                     return false;
                 }
@@ -636,6 +662,52 @@ document.addEventListener('alpine:init', () => {
             this.typeFilter = 'all';
             this.sortField = 'name';
             this.sortDir = 'asc';
+        },
+
+        /**
+         * @param {Object} file
+         * @returns {boolean}
+         */
+        isConvertedFile(file) {
+            if (file.isDir) {
+                return false;
+            }
+
+            const name = this.basename(file.path);
+            const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+
+            return MM_CONVERTED_FORMATS.includes(ext);
+        },
+
+        /**
+         * The hide-converted filter must not apply when the picker restricts
+         * allowed extensions to a hidden format (e.g. a WebP-only field),
+         * otherwise picking such files becomes impossible.
+         * @returns {boolean}
+         */
+        get hideConvertedActive() {
+            if (! this.hideConverted) {
+                return false;
+            }
+
+            const allowed = Alpine.store('mm').allowedExtensions ?? [];
+            if (allowed.length && allowed.some((e) => MM_CONVERTED_FORMATS.includes(String(e).toLowerCase()))) {
+                return false;
+            }
+
+            return true;
+        },
+
+        toggleHideConverted() {
+            this.hideConverted = ! this.hideConverted;
+
+            try {
+                window.localStorage.setItem(MM_HIDE_CONVERTED_KEY, this.hideConverted ? '1' : '0');
+            } catch (e) {
+                console.debug('[media-manager] localStorage unavailable, hideConverted not persisted', e);
+            }
+
+            console.debug('[media-manager] hide converted formats:', this.hideConverted);
         },
 
         /**
