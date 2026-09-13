@@ -49,7 +49,7 @@ moonshine-media-manager/
 ├── .github/workflows/ci.yml    # CI: php -l, PHPUnit (8.2/8.3), сборка ассетов + проверка dist/
 ├── docs/                       # Доп. документация
 ├── blob/                       # Скриншоты для README
-├── .ai-factory/                # Контекст AI Factory (DESCRIPTION, rules, config.yaml)
+├── .ai-factory/                # Контекст AI Factory — только локально, исключён из репо (.gitignore)
 └── .opencode/skills/           # Скиллы проекта (aif-*, moonshine-package)
 ```
 
@@ -79,6 +79,8 @@ moonshine-media-manager/
 | Лицензия | LICENSE | MIT |
 
 ## AI-контекст файлы
+
+> Файлы `.ai-factory/*` исключены из репозитория (`.gitignore`) и существуют только локально; в свежем клоне создаются заново командой `/aif`.
 
 | Файл | Назначение |
 |------|-----------|
