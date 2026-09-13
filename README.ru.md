@@ -34,7 +34,7 @@ php artisan vendor:publish --tag=moonshine-media-manager-assets
 php artisan vendor:publish --tag=moonshine-media-manager-config
 ```
 
-Подключите OffCanvas в layout и — опционально — пункт меню: [Установка и быстрый старт](docs/getting-started.md).
+Подключите OffCanvas в layout и — опционально — пункт меню: [Установка и быстрый старт](docs/getting-started.ru.md).
 
 ## Пример: picker-поле в форме
 
@@ -51,7 +51,7 @@ MediaManagerPicker::make('Галерея', 'images')
     ->allowedTypes(['image']),
 ```
 
-Работает с обычными полями, Json и Layouts — [подробнее](docs/picker-field.md).
+Работает с обычными полями, Json и Layouts — [подробнее](docs/picker-field.ru.md).
 
 ## Возможности v4
 
