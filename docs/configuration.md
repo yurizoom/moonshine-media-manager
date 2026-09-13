@@ -1,10 +1,10 @@
-[← Установка](getting-started.md) · [Back to README](../README.md) · [Поле MediaManagerPicker →](picker-field.md)
+[← Installation](getting-started.md) · **English** | [Русский](configuration.ru.md) · [Back to README](../README.md) · [MediaManagerPicker field →](picker-field.md)
 
-# Конфигурация
+# Configuration
 
-## Файл конфигурации
+## Config file
 
-Конфиг публикуется в `config/media-manager.php` (корневой файл). Поддерживается fallback — если ключи найдены в `config/moonshine.php` → `media_manager`, они тоже применяются. Приоритет: standalone файл > `moonshine.php` > дефолты пакета.
+The config is published to `config/media-manager.php` (a standalone file). A fallback is supported — keys found in `config/moonshine.php` → `media_manager` are applied too. Priority: standalone file > `moonshine.php` > package defaults.
 
 ```php
 // config/media-manager.php
@@ -19,46 +19,46 @@ return [
 ];
 ```
 
-## Параметры
+## Options
 
-| Параметр | По умолчанию | Описание |
-|----------|-------------|----------|
-| `disk` | `public` | Диск файлового хранилища (только локальный) |
-| `allowed_ext` | `jpg,jpeg,png,...` | Разрешённые расширения (с MIME-проверкой). **Пустое значение = загрузки запрещены** (deny-by-default) |
-| `max_file_size` | `10485760` (10 MB) | Макс. размер загружаемого файла |
-| `rename_duplicates` | `true` | Переименовать дубликат (`file.jpg` → `file-1.jpg`) вместо перезаписи |
-| `auto_menu` | `true` | Автоматически добавить в боковое меню |
-| `ability` | `null` | Gate ability для авторизации (`null` = без проверки) |
-| `blocked_paths` | `['framework', 'logs']` | Запрещённые top-level каталоги диска (первый сегмент пути, без учёта регистра) |
-| `default_view` | `table` | Вид по умолчанию: `table` или `grid` |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `disk` | `public` | Storage disk (local only) |
+| `allowed_ext` | `jpg,jpeg,png,...` | Allowed extensions (with MIME checks). **An empty value = uploads denied** (deny-by-default) |
+| `max_file_size` | `10485760` (10 MB) | Maximum uploaded file size |
+| `rename_duplicates` | `true` | Rename a duplicate (`file.jpg` → `file-1.jpg`) instead of overwriting |
+| `auto_menu` | `true` | Add the manager to the sidebar automatically |
+| `ability` | `null` | Gate ability for authorization (`null` = no check) |
+| `blocked_paths` | `['framework', 'logs']` | Forbidden top-level disk directories (first path segment, case-insensitive) |
+| `default_view` | `table` | Default view: `table` or `grid` |
 
-## Политика загрузок (security)
+## Upload policy (security)
 
-- **Итоговое расширение whitelisted обязательно:** расширение сохраняемого файла обязано явно входить в `allowed_ext`; клиентское расширение само по себе ничего не даёт.
-- **Контент сверяется с расширением:** если содержимое файла распознаётся как другой известный тип (например, PHP-пayload под именем `.jpg`) — загрузка отклоняется.
-- **Пустой `allowed_ext` запрещает все загрузки** с локализованным сообщением об ошибке.
-- **SVG санитизируется:** при загрузке/замене из SVG вырезаются `<script>`, `<foreignObject>`, event-атрибуты (`on*`) и `javascript:`-ссылки; повреждённый XML отклоняется.
-- **Имена файлов транслитерируются:** `Отчёт.jpg` → `Otcet.jpg`; опасные расширения (`php`, `phtml`, `phar`, `htaccess`…) блокируются в любом сегменте имени.
-- **Мутации под блокировкой:** upload/move/replace/new-folder выполняются под atomic cache-lock (с graceful-fallback на драйверах без поддержки блокировок).
+- **The final extension must be whitelisted:** the stored file's extension has to be explicitly listed in `allowed_ext`; the client-side extension alone proves nothing.
+- **Content is matched against the extension:** when the file content is detected as another known type (e.g. a PHP payload named `.jpg`), the upload is rejected.
+- **An empty `allowed_ext` denies all uploads** with a localized error message.
+- **SVG is sanitized:** on upload/replace, `<script>`, `<foreignObject>`, event attributes (`on*`) and `javascript:` links are stripped; malformed XML is rejected.
+- **File names are transliterated:** `Отчёт.jpg` → `Otcet.jpg`; dangerous extensions (`php`, `phtml`, `phar`, `htaccess`…) are blocked in any segment of the name.
+- **Mutations under a lock:** upload/move/replace/new-folder run under an atomic cache lock (with a graceful fallback on lock-less drivers).
 
-## ENV-переменные
+## ENV variables
 
-| Переменная | Что управляет |
-|-----------|---------------|
-| `MOONSHINE_MEDIA_MANAGER_MAX_FILE_SIZE` | Лимит размера файла (байты) |
-| `MOONSHINE_MEDIA_MANAGER_RENAME_DUPLICATES` | Переименование дубликатов |
-| `MOONSHINE_MEDIA_MANAGER_AUTO_MENU` | Автопункт меню |
+| Variable | Controls |
+|----------|----------|
+| `MOONSHINE_MEDIA_MANAGER_MAX_FILE_SIZE` | File size limit (bytes) |
+| `MOONSHINE_MEDIA_MANAGER_RENAME_DUPLICATES` | Duplicate renaming |
+| `MOONSHINE_MEDIA_MANAGER_AUTO_MENU` | Automatic menu item |
 | `MOONSHINE_MEDIA_MANAGER_ABILITY` | Gate ability |
 
-## Authorization (опционально)
+## Authorization (optional)
 
-По умолчанию любой аутентифицированный юзер MoonShine имеет полный доступ к менеджеру. Для ограничения — задайте Gate ability в `.env`:
+By default every authenticated MoonShine user has full access to the manager. To restrict it, set a Gate ability in `.env`:
 
 ```bash
 MOONSHINE_MEDIA_MANAGER_ABILITY=manage-media
 ```
 
-И определите Gate в `AuthServiceProvider`:
+And define the Gate in `AuthServiceProvider`:
 
 ```php
 use Illuminate\Support\Facades\Gate;
@@ -68,20 +68,20 @@ Gate::define('manage-media', function (User $user) {
 });
 ```
 
-Теперь только админы имеют доступ. Остальные получают 403.
+Now only admins have access; everyone else gets a 403.
 
-## Слои модальных окон (z-index)
+## Modal layers (z-index)
 
-Менеджер использует выделенные слои поверх шкалы ядра MoonShine, поэтому его окна **всегда** выше сторонних оверлеев на модальном слое ядра (1100) — например, picker'а `moonshine-flexible-layouts`:
+The manager uses dedicated layers above the core MoonShine scale, so its windows sit **always** above third-party overlays on the core modal layer (1100) — for example the `moonshine-flexible-layouts` picker:
 
-| Элемент | Слой | z |
+| Element | Layer | z |
 |---|---|---|
-| Браузер (off-canvas) | `--mm-z-browser` | `calc(var(--z-modal, 1100) + 50)` = 1150 |
-| Все диалоги менеджера (upload / rename / delete / preview / move / replace / url / new-folder) | `--mm-z-dialog` | `calc(var(--z-menu, 1200) + 50)` = 1250 |
+| Browser (off-canvas) | `--mm-z-browser` | `calc(var(--z-modal, 1100) + 50)` = 1150 |
+| All manager dialogs (upload / rename / delete / preview / move / replace / url / new-folder) | `--mm-z-dialog` | `calc(var(--z-menu, 1200) + 50)` = 1250 |
 
-Выше менеджера остаются только тосты ядра (`--z-toast: 1300`) — ошибки загрузки видны всегда.
+Only the core toasts (`--z-toast: 1300`) stay above the manager — upload errors are always visible.
 
-Значения наследуются от токенов ядра через `calc()`, поэтому при смене шкалы ядра слои пересчитаются автоматически. Оба токена можно переопределить в CSS хоста:
+The values inherit from core tokens via `calc()`, so the layers recalculate automatically when the core scale changes. Both tokens can be overridden in the host's CSS:
 
 ```css
 :root {
@@ -92,6 +92,6 @@ Gate::define('manage-media', function (User $user) {
 
 ## See Also
 
-- [Установка](getting-started.md) — публикация конфига и первый запуск
-- [API и события](api.md) — JSON-контракт эндпоинтов
-- [Старые версии](legacy-versions.md) — настройка через `config/moonshine.php` (v3/v2)
+- [Installation](getting-started.md) — publishing the config and first run
+- [API & events](api.md) — endpoint JSON contract
+- [Legacy versions](legacy-versions.md) — configuration via `config/moonshine.php` (v3/v2)

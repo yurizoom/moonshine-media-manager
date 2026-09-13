@@ -1,10 +1,10 @@
-[← Разработка](development.md) · [Back to README](../README.md)
+[← Development](development.md) · **English** | [Русский](legacy-versions.ru.md) · [Back to README](../README.md)
 
-# Старые версии (v3 / v2)
+# Legacy versions (v3 / v2)
 
-## Настройка v3 (пакет 3.x, MoonShine 4)
+## v3 setup (package 3.x, MoonShine 4)
 
-Добавьте в `config/moonshine.php`:
+Add to `config/moonshine.php`:
 
 ```php
 'media_manager' => [
@@ -15,7 +15,7 @@
 ],
 ```
 
-Для добавления в меню:
+To add a menu item:
 
 ```php
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
@@ -28,26 +28,26 @@ protected function menu(): array
 }
 ```
 
-## Настройка v2 (пакет 2.x, MoonShine 3)
+## v2 setup (package 2.x, MoonShine 3)
 
-Если необходимо изменить настройки, добавьте в файл `config/moonshine.php`:
+To change the settings, add to `config/moonshine.php`:
 
 ```php
 [
     'media_manager' => [
-        // Автоматическое добавление в меню
+        // Automatic menu item
         'auto_menu' => true,
-        // Корневая директория
+        // Root directory
         'disk' => config('filesystem.default', 'public'),
-        // Разрешенные для загрузки расширения файлов
+        // File extensions allowed for upload
         'allowed_ext' => 'jpg,jpeg,png,pdf,doc,docx,zip',
-        // Вид менеджера по-умолчанию
+        // Default manager view
         'default_view' => 'table',
     ]
 ]
 ```
 
-Для добавления в меню в `app/MoonShine/Layouts/MoonShineLayout.php`:
+To add a menu item in `app/MoonShine/Layouts/MoonShineLayout.php`:
 
 ```php
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
@@ -62,5 +62,5 @@ protected function menu(): array
 
 ## See Also
 
-- [Установка](getting-started.md) — актуальная настройка v4
-- [Конфигурация](configuration.md) — полный список параметров v4
+- [Installation](getting-started.md) — current v4 setup
+- [Configuration](configuration.md) — the full list of v4 options

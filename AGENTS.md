@@ -47,7 +47,7 @@ moonshine-media-manager/
 ├── tests/                      # PHPUnit + Testbench: Unit (санитайзеры) + Feature (JSON-контракт)
 ├── phpunit.xml.dist            # Конфиг тестов
 ├── .github/workflows/ci.yml    # CI: php -l, PHPUnit (8.2/8.3), сборка ассетов + проверка dist/
-├── docs/                       # Доп. документация
+├── docs/                       # Двуязычные доки: name.md (en, дефолт) + name.ru.md (ru)
 ├── blob/                       # Скриншоты для README
 ├── .ai-factory/                # Контекст AI Factory — только локально, исключён из репо (.gitignore)
 └── .opencode/skills/           # Скиллы проекта (aif-*, moonshine-package)

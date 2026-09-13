@@ -1,28 +1,28 @@
-[← Поле MediaManagerPicker](picker-field.md) · [Back to README](../README.md) · [Разработка →](development.md)
+[← MediaManagerPicker field](picker-field.md) · **English** | [Русский](api.ru.md) · [Back to README](../README.md) · [Development →](development.md)
 
-# API и события
+# API & events
 
-## Маршруты
+## Routes
 
-Все операции менеджера — AJAX-эндпоинты с префиксом `media`:
+All manager operations are AJAX endpoints under the `media` prefix:
 
-| Метод | Маршрут | Назначение |
-|-------|---------|-----------|
-| GET | `media/list` | Список файлов и папок (+ навигация, URL) |
-| GET | `media/download` | Скачивание файла (StreamedResponse) |
-| POST | `media/upload` | Загрузка файлов (множественная) |
-| POST | `media/delete` | Удаление (в т.ч. массовое, `files[]`) |
-| POST | `media/move` | Перемещение файла/папки |
-| POST | `media/new-folder` | Создание папки |
-| POST | `media/replace` | Замена файла по тому же пути |
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `media/list` | List files and folders (+ navigation, URLs) |
+| GET | `media/download` | Download a file (StreamedResponse) |
+| POST | `media/upload` | Upload files (multiple) |
+| POST | `media/delete` | Delete (bulk supported, `files[]`) |
+| POST | `media/move` | Move a file/folder |
+| POST | `media/new-folder` | Create a folder |
+| POST | `media/replace` | Replace a file at the same path |
 
-Каждый эндпоинт проверяет Gate ability из конфига (если задан) и возвращает JSON. Отказ авторизации — HTTP 403 с тем же контрактом (`status: false`), а не стандартная страница Laravel.
+Every endpoint checks the Gate ability from the config (when set) and returns JSON. An authorization failure is an HTTP 403 with the same contract (`status: false`) — not Laravel's default page.
 
-## JSON-контракт
+## JSON contract
 
-Все эндпоинты — включая ошибочные запросы (заблокированный путь, несуществующий файл, мусорный input) — отвечают JSON. HTML-страница ошибки (HTTP 500) невозможна: конструирование менеджера и доменные исключения перехватываются единым контуром в контроллере.
+All endpoints — including failing requests (blocked path, missing file, garbage input) — answer with JSON. An HTML error page (HTTP 500) is impossible: manager construction and domain exceptions are caught by a unified boundary in the controller.
 
-Успех (`media/list`):
+Success (`media/list`):
 
 ```json
 {
@@ -37,53 +37,53 @@
 }
 ```
 
-Успех (мутации):
+Success (mutations):
 
 ```json
 {"status": true, "message": "moonshine-media-manager::media-manager.uploaded_successfully"}
 ```
 
-Ошибка (HTTP 400):
+Error (HTTP 400):
 
 ```json
-{"status": false, "message": "Локализованное сообщение об ошибке"}
+{"status": false, "message": "Localized error message"}
 ```
 
-Отказ авторизации (HTTP 403):
+Authorization failure (HTTP 403):
 
 ```json
-{"status": false, "message": "Доступ запрещён"}
+{"status": false, "message": "Access denied"}
 ```
 
-В production неожидаемые ошибки отдаются как локализованный generic-текст; сырые сообщения исключений — только в local-окружении. Неожидаемые исключения дополнительно уходят в `report()`.
+In production, unexpected errors are returned as a localized generic message; raw exception messages only in the local environment. Unexpected exceptions are additionally passed to `report()`.
 
-## Параметры `media/list`
+## `media/list` parameters
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `path` | string | Текущая папка, по умолчанию `/` |
-| `view` | `table`\|`grid` | Вид отображения |
-| `types` | array | Фильтр по типам (image, video, audio, pdf, ...) — использует picker |
-| `extensions` | array | Фильтр по расширениям — использует picker |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `path` | string | Current folder, defaults to `/` |
+| `view` | `table`\|`grid` | Display view |
+| `types` | array | Type filter (image, video, audio, pdf, ...) — used by the picker |
+| `extensions` | array | Extension filter — used by the picker |
 
-## Параметры `media/upload`
+## `media/upload` parameters
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `dir` | string | Целевая папка, по умолчанию `/` |
-| `files` | array | Загружаемые файлы (`files[]`) |
-| `types` | array | Необязательный picker-фильтр по типам — сервер отклонит файл вне списка (400) |
-| `extensions` | array | Необязательный picker-фильтр по расширениям — сервер отклонит файл вне списка (400) |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `dir` | string | Target folder, defaults to `/` |
+| `files` | array | Files to upload (`files[]`) |
+| `types` | array | Optional picker type filter — the server rejects out-of-list files (400) |
+| `extensions` | array | Optional picker extension filter — the server rejects out-of-list files (400) |
 
-## События
+## Events
 
-Пакет диспатчит события для интеграции с внешним кодом:
+The package dispatches events for integration with external code:
 
-| Событие | Когда | Параметры |
-|---------|-------|-----------|
-| `MediaManagerFileUploaded` | Файл загружен | `$path, $disk` |
-| `MediaManagerFileReplaced` | Файл заменён (Replace) | `$path, $disk` |
-| `MediaManagerFileDeleted` | Файл удалён. При удалении папки — по событию на каждый файл внутри неё (пути с ведущим `/`) | `$path, $disk` |
+| Event | When | Parameters |
+|-------|------|------------|
+| `MediaManagerFileUploaded` | A file was uploaded | `$path, $disk` |
+| `MediaManagerFileReplaced` | A file was replaced (Replace) | `$path, $disk` |
+| `MediaManagerFileDeleted` | A file was deleted. When a folder is deleted — one event per file inside it (paths with a leading `/`) | `$path, $disk` |
 
 ```php
 use YuriZoom\MoonShineMediaManager\Events\MediaManagerFileUploaded;
@@ -95,14 +95,14 @@ protected $listen = [
 ];
 ```
 
-Или через `Event::listen()` в ServiceProvider пакета-расширения.
+Or via `Event::listen()` in the extension package's ServiceProvider.
 
-## Реестр расширений
+## Extension registry
 
-Сторонние пакеты могут добавлять свои действия в UI менеджера через `MediaManagerRegistryInterface` (кнопки в тулбаре и per-file действия) — см. пример интеграции в [разделе разработки](development.md).
+Third-party packages can add their own actions to the manager UI via `MediaManagerRegistryInterface` (toolbar buttons and per-file actions) — see the integration example in the [development section](development.md).
 
 ## See Also
 
-- [Разработка](development.md) — интеграция через реестр и сборка ассетов
-- [Поле MediaManagerPicker](picker-field.md) — поле, использующее эти эндпоинты
-- [Конфигурация](configuration.md) — авторизация эндпоинтов через Gate
+- [Development](development.md) — integration via the registry and asset builds
+- [MediaManagerPicker field](picker-field.md) — the field using these endpoints
+- [Configuration](configuration.md) — endpoint authorization via Gate
