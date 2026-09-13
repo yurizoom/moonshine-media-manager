@@ -11,9 +11,11 @@
          x-ref="mmRoot"
          x-init="(() => {
              const template = $el.closest('.offcanvas-template');
-             if (template && window.mmDebug) {
+             if (template) {
                  template.style.setProperty('--z-offcanvas', 'var(--mm-z-browser)');
-                 console.debug('[media-manager] browser offcanvas elevated to var(--mm-z-browser)');
+                 if (window.mmDebug) {
+                     console.debug('[media-manager] browser offcanvas elevated to var(--mm-z-browser)');
+                 }
              }
          })()"
     >
