@@ -145,6 +145,7 @@ document.addEventListener('alpine:init', () => {
         close() {
             this.isOpen = false;
             this._callback = null;
+            this._resetPickerConfig('close');
 
             window.MoonShine?.ui?.toggleOffCanvas('media-manager');
         },
@@ -163,8 +164,17 @@ document.addEventListener('alpine:init', () => {
 
             this._callback = null;
             this.isOpen = false;
+            this._resetPickerConfig('confirm');
 
             window.MoonShine?.ui?.toggleOffCanvas('media-manager');
+        },
+
+        /** Leaked picker config would silently disable the hide-converted filter in later sessions. */
+        _resetPickerConfig(source) {
+            this.multiple = false;
+            this.allowedTypes = [];
+            this.allowedExtensions = [];
+            mmDebugLog('picker config reset (' + source + ')');
         },
 
         /**
@@ -663,20 +673,29 @@ document.addEventListener('alpine:init', () => {
          * otherwise picking such files becomes impossible.
          * @returns {boolean}
          */
-        get hideConvertedActive() {
+        get hideConvertedSuppressed() {
             if (! this.hideConverted) {
                 return false;
             }
 
             const allowed = Alpine.store('mm').allowedExtensions ?? [];
-            if (allowed.length && allowed.some((e) => MM_CONVERTED_FORMATS.includes(String(e).toLowerCase()))) {
+            if (allowed.length === 0) {
                 return false;
             }
 
-            return true;
+            return allowed.every((e) => MM_CONVERTED_FORMATS.includes(String(e).toLowerCase()));
+        },
+
+        get hideConvertedActive() {
+            return this.hideConverted && ! this.hideConvertedSuppressed;
         },
 
         toggleHideConverted() {
+            if (this.hideConvertedSuppressed) {
+                mmDebugLog('hide converted suppressed by picker config', Alpine.store('mm').allowedExtensions);
+                return;
+            }
+
             this.hideConverted = ! this.hideConverted;
 
             try {
