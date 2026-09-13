@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace YuriZoom\MoonShineMediaManager;
 
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use MoonShine\Contracts\Core\DependencyInjection\CoreContract;
 use MoonShine\Contracts\MenuManager\MenuManagerContract;
 use MoonShine\MenuManager\MenuItem;
+use Throwable;
 use YuriZoom\MoonShineMediaManager\Contracts\MediaManagerRegistryInterface;
 use YuriZoom\MoonShineMediaManager\Pages\MediaManagerPage;
 use YuriZoom\MoonShineMediaManager\Support\MediaManagerRegistry;
@@ -105,9 +108,25 @@ final class MediaManagerServiceProvider extends ServiceProvider
             return;
         }
 
-        if (! is_dir($target) || filemtime($source.'/media-manager.js') > @filemtime($target.'/media-manager.js')) {
-            \Illuminate\Support\Facades\File::ensureDirectoryExists($target);
-            \Illuminate\Support\Facades\File::copyDirectory($source, $target);
+        $sourceTime = @filemtime($source.'/media-manager.js');
+        $targetTime = @filemtime($target.'/media-manager.js');
+
+        if (is_dir($target) && ($sourceTime === false || $targetTime === false || $sourceTime <= $targetTime)) {
+            return;
+        }
+
+        try {
+            File::ensureDirectoryExists($target);
+            File::copyDirectory($source, $target);
+
+            Log::info('[MediaManagerServiceProvider] assets auto-published', [
+                'target' => $target,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('[MediaManagerServiceProvider] asset auto-publish failed', [
+                'target' => $target,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

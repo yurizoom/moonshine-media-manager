@@ -11,7 +11,14 @@
     @include('moonshine-media-manager::partials._mm-z-bump')
     <form @submit.prevent="submitUpload()">
         <div class="mm-modal-form">
-            <label class="mm-upload-dropzone" for="{{ $modalPrefix }}upload-input">
+            <label class="mm-upload-dropzone"
+                   for="{{ $modalPrefix }}upload-input"
+                   :class="{ 'mm-upload-dropzone--active': dropzoneHover }"
+                   @dragenter="onDropzoneDragEnter($event)"
+                   @dragover="onDropzoneDragOver($event)"
+                   @dragleave="onDropzoneDragLeave()"
+                   @drop.prevent="onUploadDrop($event)"
+            >
                 <x-moonshine::icon icon="cloud-arrow-up" class="mm-upload-dropzone-icon"/>
                 <span class="mm-upload-dropzone-text">{{ __('moonshine-media-manager::media-manager.upload_choose') }}</span>
                 <span class="mm-upload-dropzone-hint">{{ __('moonshine-media-manager::media-manager.upload_hint') }}</span>
@@ -193,7 +200,14 @@
         </div>
 
         <template x-if="! pendingReplace">
-            <label class="mm-upload-dropzone" for="{{ $modalPrefix }}replace-input">
+            <label class="mm-upload-dropzone"
+                   for="{{ $modalPrefix }}replace-input"
+                   :class="{ 'mm-upload-dropzone--active': dropzoneHover }"
+                   @dragenter="onDropzoneDragEnter($event)"
+                   @dragover="onDropzoneDragOver($event)"
+                   @dragleave="onDropzoneDragLeave()"
+                   @drop.prevent="onReplaceDrop($event)"
+            >
                 <x-moonshine::icon icon="cloud-arrow-up" class="mm-upload-dropzone-icon"/>
                 <span class="mm-upload-dropzone-text">{{ __('moonshine-media-manager::media-manager.replace_choose') }}</span>
                 <input type="file"
